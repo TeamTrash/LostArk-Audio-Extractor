@@ -1,0 +1,187 @@
+{
+  "files": {
+    ".gitignore": {
+      "bytes": 137,
+      "sha256": "ccc4255bc08cbd4fc51f3e8901b2eeb64371ce028812d12da4773cdbea875246"
+    },
+    "CHANGELOG.md": {
+      "bytes": 3977,
+      "sha256": "0fc4473b4e079e778ccb8392c392bbc0b8f041147f9850e4f320623e7c09ff79"
+    },
+    "CONTRIBUTING.md": {
+      "bytes": 1042,
+      "sha256": "1d7ba2e887f30113599f67ada82b3424c7537a7d4c18d08f2205ae3b2e011fd2"
+    },
+    "DEPENDENCIES.json": {
+      "bytes": 1667,
+      "sha256": "d5a4231d601c13a39912109175ffd66899322ffa3ef10ed5f2869dc9e899524c"
+    },
+    "Iniciar.cmd": {
+      "bytes": 130,
+      "sha256": "273afa0b357d009c229a4e735f6a8c4eac9d167dfb08f59c77eb133c1382aebb"
+    },
+    "LICENSE": {
+      "bytes": 1094,
+      "sha256": "88d8b10f77001bf8677155704cf0844425733799871a94ae796a80eca92618c7"
+    },
+    "LOCAL_USE_ONLY.md": {
+      "bytes": 1204,
+      "sha256": "4a1bad5a987e50a45e406b6084c2c7d9b9041fe5a41f68af81dcdad7862452fc"
+    },
+    "README.md": {
+      "bytes": 9060,
+      "sha256": "9ca94c56a79bc85a6975ba3708f10378356460e2d2d9d8b6c28504b24eb999f4"
+    },
+    "RELEASE.md": {
+      "bytes": 2597,
+      "sha256": "f925cb89c317d9683bd03a5b01c7018cc847d276653b3ec5fcd14333afef707d"
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "bytes": 2973,
+      "sha256": "9917511c1e7bb523935b9b8cf8b3808c9a08a897e24ee5fc3dc2695c7ca07917"
+    },
+    "app.py": {
+      "bytes": 16039,
+      "sha256": "4223f8a590557cdfeaecb3c73dc082f402156c53f7900d1b499b5ce20e99017b"
+    },
+    "build_release.py": {
+      "bytes": 5581,
+      "sha256": "97f46d02859221726d43b477f71dc1b6c92a49c64aaa6c1c0c3f2307cbf2325f"
+    },
+    "core.py": {
+      "bytes": 15302,
+      "sha256": "15aff862ba8d5eb91e0f21f98202ba10f5de6c5ba52c3076699cfc5464280a3c"
+    },
+    "data/event_names.local.json": {
+      "bytes": 872184,
+      "sha256": "5cafbdde2b34a0a78d91b8f354b08cead93b53de6b870996d1e8a628bc0e727d"
+    },
+    "licenses/lostark-explorer-MIT.txt": {
+      "bytes": 1068,
+      "sha256": "999b427241704a5b2ce9acde418ca6bfd7273d051d2400874f3225b6e3e4cc2a"
+    },
+    "name_decoder.py": {
+      "bytes": 2199,
+      "sha256": "7d33dde16083252ad3073c67b5ff0365464295a7b816f95a198c68fcda44c671"
+    },
+    "repair_names.py": {
+      "bytes": 5991,
+      "sha256": "46aa348fcad24d9cc95bb4221b79a84c2a25d85d8c2156229e88a96dc1499b65"
+    },
+    "tests/test_core.py": {
+      "bytes": 19663,
+      "sha256": "321d33c2e80642ede5ce26d5c0fc376504c03cd98d39c88a4d93f0d896be3d3b"
+    },
+    "tests/test_names.py": {
+      "bytes": 1081,
+      "sha256": "97e7e2bd66de968b408b68523a51fecf6bb279220c55287d16f4385962edf2e2"
+    },
+    "tests/test_release.py": {
+      "bytes": 4091,
+      "sha256": "3f475ff7925a54fc10bfe65e5d5077995d7df48928333ce81df1ba88b166da56"
+    },
+    "tests/test_repair_names.py": {
+      "bytes": 5919,
+      "sha256": "2fd1f0b9e32d17d7c0dd77e439f03e13917821535c1394edb9ad04700abb17b3"
+    },
+    "tests/test_settings.py": {
+      "bytes": 2871,
+      "sha256": "f5158cb0b6dbd62591136baaf64785ec169b42d721e3039577b22db4c7f58e87"
+    },
+    "tests/test_table.py": {
+      "bytes": 4566,
+      "sha256": "263477fe2b49ff3ca5e1d40677b226184d8460d3973ee1e685332a3d8ab5469c"
+    },
+    "tools/LAUTool_0.3/LAUTool_steam.exe": {
+      "bytes": 59904,
+      "sha256": "d997c380674c79f92f661c4ee9a6feff3f6976bf000691bb8bbe78a72698aafb"
+    },
+    "tools/README.md": {
+      "bytes": 1025,
+      "sha256": "73246b0c4f9b6c243399986f0e69cb60e40a38c4ed61a2f31d3b2a057dd45705"
+    },
+    "tools/quickbms/bin/changelog.txt": {
+      "bytes": 51021,
+      "sha256": "13865d48f52d23f015367b40c76778716e7f2f95ea5c894a860dc030cb5f03b0"
+    },
+    "tools/quickbms/bin/quickbms.exe": {
+      "bytes": 20151296,
+      "sha256": "ff812d38e22aea0cc2cdc13c5c91ca34fae4443ab12987002105be6bab3f4948"
+    },
+    "tools/quickbms/bin/quickbms.txt": {
+      "bytes": 232748,
+      "sha256": "0a75a3c343a80b6066e482efebf0a93aa665ad1549947f81f417d19def814c58"
+    },
+    "tools/quickbms/wwise_pck_extractor.bms": {
+      "bytes": 6164,
+      "sha256": "4459c0a4c354a92dcad335599c389e8296908bd8b38fb128bd4c505aeaee6b5d"
+    },
+    "tools/vgmstream/bin/COPYING": {
+      "bytes": 1314,
+      "sha256": "fcc26d35c4c4365e31f21734f846e4ee362ff0b57ba696085605a7b4768d8763"
+    },
+    "tools/vgmstream/bin/README.md": {
+      "bytes": 5010,
+      "sha256": "1357f0d7f92461a094177e4686a90f42d64a05bec9ca0abb12bc08c181a1b7b8"
+    },
+    "tools/vgmstream/bin/USAGE.md": {
+      "bytes": 47944,
+      "sha256": "076792de44e380e9e530acb232cb034c9157b1ca8fd9f0e576922ed737cde895"
+    },
+    "tools/vgmstream/bin/avcodec-vgmstream-59.dll": {
+      "bytes": 2450432,
+      "sha256": "4d6cf54e7b3c26ef06e95bdb515a10d1e1bed3ec1ffd87ec3e5c4fbcd2a883f6"
+    },
+    "tools/vgmstream/bin/avformat-vgmstream-59.dll": {
+      "bytes": 1305600,
+      "sha256": "0dde66ea268cccb67b1aa219c1ce879602b839e561a79a00c8215e2688f1a4b2"
+    },
+    "tools/vgmstream/bin/avutil-vgmstream-57.dll": {
+      "bytes": 1792000,
+      "sha256": "a999856c17cfdce3c22b92b6640a7ada6c4ab4c3c6841a863770b72fa0bc19b4"
+    },
+    "tools/vgmstream/bin/libatrac9.dll": {
+      "bytes": 308736,
+      "sha256": "fe82f1ae13a798337e03942c35351997c23caadb5eb0c6b7a2dc2a521ed8b02e"
+    },
+    "tools/vgmstream/bin/libcelt-0061.dll": {
+      "bytes": 110628,
+      "sha256": "542254723d9100f91cbf18e41c4aff80287c22a9859e9e545c413d984df440ad"
+    },
+    "tools/vgmstream/bin/libcelt-0110.dll": {
+      "bytes": 105132,
+      "sha256": "bfcc51d865bb3b6a2793381bf535f23ec423feb722b46333fa8556ccdcafa61a"
+    },
+    "tools/vgmstream/bin/libg719_decode.dll": {
+      "bytes": 156160,
+      "sha256": "aad61f205ce1f1b61285f6b37b90a331ec8c6ae2f94f361714dc21a12c236960"
+    },
+    "tools/vgmstream/bin/libmpg123-0.dll": {
+      "bytes": 420235,
+      "sha256": "db9eb1d91b8eb9f47b0968201dbf6c51a9627e539a78afd9ad5f59c5d18fe4df"
+    },
+    "tools/vgmstream/bin/libspeex-1.dll": {
+      "bytes": 129630,
+      "sha256": "04dbc85fcec6c54671535bf39937a70f2dd040a81ad670a0b84de6ca17b39bff"
+    },
+    "tools/vgmstream/bin/libvorbis.dll": {
+      "bytes": 287232,
+      "sha256": "5f330a20b19b3c70dc43eedcc95891e65940fca04a77155c573efcdd4c2ca665"
+    },
+    "tools/vgmstream/bin/swresample-vgmstream-4.dll": {
+      "bytes": 729600,
+      "sha256": "688a81d31ef98a9a6143e1075b2f4c5b79bdfa51e7a14d50d662a0e916dac739"
+    },
+    "tools/vgmstream/bin/vgmstream-cli.exe": {
+      "bytes": 3019776,
+      "sha256": "73a5e9ffceda6dd74f48978e54547efbb9da72c952d8eeec43029152df87c879"
+    },
+    "version.py": {
+      "bytes": 53,
+      "sha256": "67758e1ed9c33f94dec1b42b1bf09ce5b1975c7159312d890cd3cfe48cd6df28"
+    }
+  },
+  "kind": "local-tools",
+  "license": "mixed-see-notices",
+  "version": "1.3.2"
+}
