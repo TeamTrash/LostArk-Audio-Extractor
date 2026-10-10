@@ -6,15 +6,6 @@ codigo no otorga derechos sobre contenidos del juego ni herramientas externas.
 
 ## Paquete publico
 
-LoaAudioExtractor-1.3.2-source.zip contiene codigo, pruebas, lanzador e instrucciones.
-No es un EXE autonomo: requiere Python y las herramientas externas configuradas
-por cada usuario. No incluye audios, datos del juego, rutas personales ni binarios
-de terceros. Ver DEPENDENCIES.json, CHANGELOG.md y RELEASE.md.
-
-LoaAudioExtractor-1.3.2-local-tools.zip incluye ademas la carpeta tools con las
-herramientas y DLL instaladas. Es para uso local, no un paquete autorizado para
-redistribuir herramientas de terceros. Ver LOCAL_USE_ONLY.md. Requiere Python.
-
 Aplicacion local para Windows. Python 3.10 o posterior con Tcl/Tk (tkinter).
 No requiere pip, cuenta, servidor ni conexion a Internet para extraer.
 Primera version: PCK/WEM -> WAV. No modifica archivos del juego.
