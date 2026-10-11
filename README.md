@@ -25,14 +25,7 @@ La comprobacion de espacio inicial es aproximada, no garantiza espacio para
 todo el lote. Los medios intermedios usan espacio temporal y se eliminan al acabar.
 
 ## Dependencias externas
-
-La carpeta local apps/LoaAudioExtractor/tools contiene copias de las herramientas
-ya instaladas, incluidas las DLL de vgmstream y documentacion disponible.
-Se detectan desde la carpeta de la app, sin depender de tools/audio_converters.
-Las rutas internas se guardan relativas; las configuraciones antiguas se migran
-al cargar conservando otras rutas personalizadas validas de herramientas.
-Python sigue siendo un requisito externo. 
-
+ 
 - LAUTool Steam 0.3: version proporcionada por el usuario; copia local en tools/LAUTool_0.3.
 - QuickBMS: https://aluigi.altervista.org/quickbms.htm
 - Script PCK: https://github.com/bnnm/wwiser-utils/blob/master/scripts/wwise_pck_extractor.bms
@@ -52,22 +45,11 @@ licenses/). La tabla mantiene la ruta/nombre original y permite buscar u ordenar
 por el nombre recuperado. Se usa tambien al nombrar las salidas de extraccion.
 PCK recupera nombres como SOUND_BGM_YORN; WEM recupera IDs, no titulos de canciones.
 Si el nombre no es compatible se conserva.
-
-
-El paquete local-tools incluye data/event_names.local.json con 5238 asociaciones
-conocidas del catalogo de musica/siderales. Se carga automaticamente cuando el
-campo Catalogo queda vacio. Un CSV elegido manualmente reemplaza ese catalogo.
-Extraer seleccion a WAV desempaqueta y convierte TODOS los medios disponibles:
-los que coinciden con el diccionario reciben su nombre descriptivo durante la
-conversion; los demas conservan sin_evento + idioma + ID. No se filtran ni omiten
-audios por carecer de nombre. Actualizar nombres no es necesario para nuevas extracciones.
-No es un diccionario completo del juego: voces, clases y otros bancos pueden no
-estar cubiertos. No se asignan eventos de otro idioma/paquete solo por coincidir el ID.
-El paquete publico source no incluye estos datos del juego.
+ 
 
 Extrae WEM de PCK y convierte WEM sueltos. Los BNK intermedios se eliminan;
 esta version no renderiza eventos Wwise ni extrae automaticamente todos los medios embebidos
 en BNK. Las composiciones, voces y bancos interdependientes pueden requerir wwiser
 y el flujo avanzado de investigacion. No incluye MP3 ni funciones de modificacion.
 
-os datos del juego usados en esas comprobaciones no se distribuyen.
+los datos del juego usados en esas comprobaciones no se distribuyen.
