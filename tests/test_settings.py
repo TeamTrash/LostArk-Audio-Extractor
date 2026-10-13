@@ -25,6 +25,16 @@ class SettingsTests(unittest.TestCase):
     def test_defaults_are_inside_app(self):
         self.assertTrue(all(Path(p).is_relative_to(self.home / 'tools') for p in app.defaults().values()))
 
+    def test_frozen_config_is_next_to_executable_not_temporary_resources(self):
+        exe = self.home / 'portable' / 'LoaAudioExtractor.exe'
+        with patch.object(app.sys, 'frozen', True, create=True), \
+                patch.object(app.sys, 'executable', str(exe)):
+            self.assertEqual(app.config_path(), exe.parent / 'config.local.json')
+
+    def test_source_config_stays_in_app_directory(self):
+        with patch.object(app.sys, 'frozen', False, create=True):
+            self.assertEqual(app.config_path(), self.home / 'config.local.json')
+
     def test_legacy_tool_paths_migrate_and_session_folders_are_ignored(self):
         saved = {k: str(self.home / 'old/tools/audio_converters' / r) for k, r in app.TOOL_PATHS.items()}
         saved.update(source='user source', output='user output')

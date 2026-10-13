@@ -7,7 +7,7 @@ import re
 import shutil
 from pathlib import Path
 
-from core import Cancelled, Extractor, load_names, slug, wav_info
+from core import Cancelled, Extractor, load_names, slug, validate_saved_audio, resolve_event, event_language
 from name_decoder import audio_name
 
 
@@ -21,8 +21,8 @@ def digest(path):
 
 def audio_path(output, relative):
     path = (output / relative).resolve()
-    if not path.is_relative_to(output) or path.suffix.lower() != '.wav':
-        raise ValueError('Ruta WAV fuera del destino o no valida.')
+    if not path.is_relative_to(output) or path.suffix.lower() not in ('.wav', '.mp3'):
+        raise ValueError('Ruta de audio fuera del destino o no valida.')
     return path
 
 
@@ -35,7 +35,7 @@ def finish_pending(output, marker, report):
     row = report['wavs'][pending['index']]
     if row['wav'] != pending['old']:
         raise ValueError('Manifiesto y renombrado pendiente no coinciden.')
-    if old == new or old.parent != new.parent:
+    if old == new or old.parent != new.parent or old.suffix != new.suffix:
         raise ValueError('Renombrado pendiente no valido.')
     if old.exists():
         if new.exists() or digest(old) != pending['sha256']:
@@ -64,16 +64,14 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
         if marker.is_symlink():
             raise ValueError('Manifiesto enlazado no admitido.')
         report = json.loads(marker.read_text(encoding='utf-8'))
-        if report.get('schema_version') != 2:
+        if report.get('schema_version') not in (2, 3):
             continue
         if report.get('pending_name'):
             if not apply:
                 raise ValueError('Hay un renombrado pendiente. Reanuda con --apply.')
             summary['renamed'] += int(finish_pending(output, marker, report))
         source = Path(report['input']['source'])
-        package = 'loose' if source.suffix.lower() == '.wem' else audio_name(source)
-        language = next((p for p in reversed(source.parts[:-1])
-                         if p in ('English(US)', 'Korean', 'Spanish(Spain)')), 'SFX')
+        package = 'loose' if source.suffix.lower() == '.wem' else report.get('decoded_name', audio_name(source))
         for index, row in enumerate(report['wavs']):
             if cancel is not None and cancel.is_set():
                 raise Cancelled()
@@ -81,23 +79,23 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
             if not old.name.startswith('sin_evento__') or row.get('events'):
                 summary['already_named'] += 1
                 continue
-            names = events.get((language, package, row['media_id']), '')
+            language, names = resolve_event(events, package, row['media_id'],
+                                            Path(row.get('media_source', '')).parent, source.parent)
             if not names:
                 summary['unknown'] += 1
                 continue
-            if wav_info(old)['frames'] != row['frames']:
-                raise ValueError(f'WAV modificado: {old}')
+            validate_saved_audio(old, row)
             name = slug(re.sub(r'\{[^}]*\}', '', names.split(' | ')[0]))
-            suffix = '__' + slug(language)[:16] + '__' + slug(row['media_id'])[:24]
+            suffix = '__' + slug(event_language(language, names))[:16] + '__' + slug(row['media_id'])[:24]
             room = min(80, 245 - len(str(old.parent)) - 1 - len(suffix) - len('_9999999.wav'))
             if room < 1:
                 raise ValueError('Destino demasiado largo para renombrar.')
             stem = name[:room] + suffix
-            dest = old.with_name(stem + '.wav')
+            dest = old.with_name(stem + old.suffix)
             number = 1
             while dest.exists() or dest in reserved:
                 number += 1
-                dest = old.with_name(stem + f'_{number}.wav')
+                dest = old.with_name(stem + f'_{number}' + old.suffix)
             if len(str(dest)) > 245:
                 raise ValueError('Destino demasiado largo para renombrar.')
             reserved.add(dest)

@@ -61,11 +61,11 @@ class TableTests(unittest.TestCase):
         self.assertTrue(self.app.table.heading('size', 'text').endswith('\u25bc'))
 
     def test_size_display_in_kb(self):
-        self.app.files[0].write_bytes(b'x' * 1250)
+        self.app.files[0].write_bytes(b'x' * 1234567)
         self.app.render()
-        self.assertEqual(self.app.table.set('0', 'size'), '1.25 KB')
+        self.assertEqual(self.app.table.set('0', 'size'), '1.235 KB')
         self.app.sort_by('size')
-        self.assertTrue(self.app.table.heading('size', 'text').startswith('KB'))
+        self.assertTrue(self.app.table.heading('size', 'text').startswith('Tamaño'))
         self.assertEqual(self.order(), ['1', '2', '0'])
 
     def test_text_columns_toggle_independently(self):

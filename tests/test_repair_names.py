@@ -44,7 +44,7 @@ class RepairNamesTests(unittest.TestCase):
         self.assertFalse(self.wav.exists())
         updated = json.loads(self.marker.read_text())
         new = self.output / updated['wavs'][0]['wav']
-        self.assertEqual(new.name, 'known_song__Spanish_Spain__123.wav')
+        self.assertEqual(new.name, 'known_song__es__123.wav')
         self.assertEqual(new.read_bytes(), before)
         self.assertEqual(updated['wavs'][0]['previous_names'], [self.report['wavs'][0]['wav']])
         self.assertEqual((self.metadata / 'naming_backups' / self.marker.name).read_bytes(), marker_before)
@@ -56,11 +56,11 @@ class RepairNamesTests(unittest.TestCase):
         self.assertTrue(self.wav.exists())
 
     def test_existing_target_is_preserved(self):
-        other = self.wav.with_name('known_song__Spanish_Spain__123.wav')
+        other = self.wav.with_name('known_song__es__123.wav')
         other.write_bytes(b'unrelated')
         repair_output(self.output, self.events, True)
         self.assertEqual(other.read_bytes(), b'unrelated')
-        self.assertTrue(self.wav.with_name('known_song__Spanish_Spain__123_2.wav').is_file())
+        self.assertTrue(self.wav.with_name('known_song__es__123_2.wav').is_file())
 
     def test_outside_path_is_rejected(self):
         self.report['wavs'][0]['wav'] = '../outside.wav'
@@ -76,7 +76,7 @@ class RepairNamesTests(unittest.TestCase):
         self.assertTrue(self.wav.exists())
 
     def pending(self):
-        new = self.wav.with_name('known_song__Spanish_Spain__123.wav')
+        new = self.wav.with_name('known_song__es__123.wav')
         self.report['pending_name'] = dict(index=0, old=self.report['wavs'][0]['wav'],
                                           new=str(new.relative_to(self.output)), sha256=digest(self.wav),
                                           events='known_song {l=es}')
@@ -118,3 +118,4 @@ class RepairNamesTests(unittest.TestCase):
             self.assertEqual(core.load_names(catalog_csv=catalog)[1][key], 'manual_song | second_song')
         with patch.object(core, 'LOCAL_CATALOG', self.root / 'missing.json'):
             self.assertEqual(core.load_names()[1], {})
+

@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.4.3
+
+- Pestaña activa más oscura, grande y en negrita; botones Examinar compactos y separados.
+- Foco por color, sin bordes punteados; teclado conservado.
+- Carpetas de salida Windows con desktop.ini oculto FolderType=Generic; respeta INI existentes.
+
+## 1.4.2
+
+- Tamaños en KB enteros redondeados, punto como separador de miles.
+- Tema claro verde salvia, controles con contraste y tipografía Segoe UI.
+
+## 1.4.1
+
+- Cabecera Tamaño; valores conservan KB y orden por bytes.
+- Icono proporcionado por el usuario en ventana y ejecutable.
+
+## 1.4.0 - 2026-10-13
+
+- New output folders use decoded__original source stems, including numeric names.
+  Existing manifests keep their folders; use a new destination for the new layout.
+- Format selector offers WAV, MP3 (320 kbps, 44.1 kHz), or both. FFmpeg/libmp3lame
+  is bundled locally; public source remains binary-free. More than two channels
+  are downmixed to stereo for MP3; WAV preserves decoded PCM.
+- Independent MP3 manifests (schema 3) support resume, missing-file recovery,
+  SHA256 integrity checks and name repair. WAV schema 2 remains compatible.
+- Reuse registered WAVs from the same source for MP3 instead of unpacking again.
+  Full MP3 decode validation precedes publication; cancel/error cleans temporary files.
+
+## 1.3.4 - 2026-10-13
+
+- Expanded local dictionary from supplied loa_data_db references and existing banks.
+  New mappings require event hash, owning bank, media package and language evidence.
+- Indexed package/media lookups avoid scanning the full catalog per WAV.
+- Explicit es/en/ko filename markers preserve separate localized media with equal IDs.
+  Conflicting language tags cannot override the selected media language; SFX remains SFX.
+- Existing WAVs can use the name-repair action without reconversion. Unknown or
+  ambiguous associations remain unnamed; already named WAVs stay unchanged.
+
 ## 1.3.2 - 2026-10-09
 
 - Resume now restores missing registered WAVs/folders instead of failing with
@@ -68,3 +106,8 @@ First public source release for Windows and Python 3.10+ with Tcl/Tk.
 Known limitations: no standalone EXE or Python runtime; external converters not
 bundled; no MP3; no automatic BNK event composition; no guaranteed compatibility
 with every game version. WAV media IDs are not necessarily song titles.
+
+## Audio naming fix 1.3.3 (2026-10-13)
+Confirmed requested ID 60147531 exists as Korean/SOUND_BGM_GLOBAL in local catalog.
+Old extraction used arbitrary parent-folder names as language (e.g. WwiseAudioPackage), causing exact catalog lookup failures. New resolver checks known language aliases in media/source ancestors, then allows package+ID lookup only when a single language association exists. Explicit language conflicts and ambiguous IDs remain unknown. Event language tags provide ko/en/es filename suffixes. Extraction and existing-output name repair share resolution.
+Validation: 61 tests pass, including simulated PCK conversion producing bgm_global_jukebox_m195_2d_play__ko__60147531.wav. Read-only repair preview on test_audio_res: 1213 recoverable, 2307 unknown, 116 already named. Existing audio not renamed this session; use Actualizar nombres del destino. New EXE: apps/releases/1.3.3/windows/LoaAudioExtractor-1.3.3.exe. No actual game-source conversion performed in this session.

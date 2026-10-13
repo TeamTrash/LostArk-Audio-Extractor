@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
@@ -15,11 +16,19 @@ from repair_names import repair_output
 from version import __version__
 
 HERE = Path(__file__).resolve().parent
-CONFIG = HERE / 'config.local.json'
+
+
+def config_path():
+    home = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else HERE
+    return home / 'config.local.json'
+
+
+CONFIG = config_path()
 TOOL_PATHS = dict(lautool='LAUTool_0.3/LAUTool_steam.exe',
                   quickbms='quickbms/bin/quickbms.exe',
                   script='quickbms/wwise_pck_extractor.bms',
-                  vgmstream='vgmstream/bin/vgmstream-cli.exe')
+                  vgmstream='vgmstream/bin/vgmstream-cli.exe',
+                  ffmpeg='ffmpeg/ffmpeg.exe')
 
 
 def defaults():
@@ -67,6 +76,9 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f'Lost Ark Audio Extractor {__version__}')
+        self.app_icon = tk.PhotoImage(file=str(HERE / 'assets' / 'app.png'))
+        self.iconphoto(True, self.app_icon)
+        self.apply_theme()
         self.geometry('1080x760')
         self.minsize(820, 620)
         self.messages = queue.Queue()
@@ -79,10 +91,12 @@ class App(tk.Tk):
         self.sort_column = None
         self.sort_descending = False
         self.file_sizes = {}
-        self.headings = {'name': 'Nombre desofuscado', 'path': 'Carpeta / archivo original', 'size': 'KB'}
+        self.headings = {'name': 'Nombre desofuscado', 'path': 'Carpeta / archivo original', 'size': 'Tamaño'}
         saved = load_settings()
         self.vars = {k: tk.StringVar(value=saved.get(k, '')) for k in
-                     ('source', 'output', 'inventory', 'catalog', *TOOL_KEYS)}
+                     ('source', 'output', 'inventory', 'catalog', 'output_format', *TOOL_KEYS)}
+        if self.vars['output_format'].get() not in ('WAV', 'MP3', 'WAV + MP3'):
+            self.vars['output_format'].set('WAV')
         self.search = tk.StringVar()
         self.status = tk.StringVar(value='Listo')
         self.controls = []
@@ -103,6 +117,11 @@ class App(tk.Tk):
         self.button(bar, 'Buscar archivos', self.scan).pack(side='left')
         ttk.Label(bar, text='Filtro').pack(side='left', padx=(18, 6))
         ttk.Entry(bar, textvariable=self.search).pack(side='left', fill='x', expand=True)
+        ttk.Label(bar, text='Formato').pack(side='left', padx=(12, 6))
+        self.output_selector = ttk.Combobox(bar, textvariable=self.vars['output_format'],
+                                           values=('WAV', 'MP3', 'WAV + MP3'), state='readonly', width=13)
+        self.output_selector.pack(side='left')
+        self.controls.append(self.output_selector)
         self.search.trace_add('write', lambda *_: self.render())
         table_frame = ttk.Frame(self.main)
         table_frame.grid(row=3, column=0, columnspan=3, sticky='nsew')
@@ -110,7 +129,7 @@ class App(tk.Tk):
         table_frame.rowconfigure(0, weight=1)
         self.main.rowconfigure(3, weight=1)
         self.table = ttk.Treeview(table_frame, columns=('name', 'path', 'size'), show='headings', selectmode='extended')
-        for key, title, width in [('name', 'Nombre desofuscado', 260), ('path', 'Carpeta / archivo original', 430), ('size', 'KB', 120)]:
+        for key, title, width in [('name', 'Nombre desofuscado', 260), ('path', 'Carpeta / archivo original', 430), ('size', 'Tamaño', 120)]:
             self.table.heading(key, text=title, command=lambda column=key: self.sort_by(column))
             self.table.column(key, width=width, minwidth=60)
         self.table.grid(row=0, column=0, sticky='nsew')
@@ -120,7 +139,7 @@ class App(tk.Tk):
         actions = ttk.Frame(self.main)
         actions.grid(row=4, column=0, columnspan=3, sticky='ew', pady=10)
         self.button(actions, 'Seleccionar visibles', lambda: self.table.selection_set(self.table.get_children())).pack(side='left')
-        self.button(actions, 'Extraer seleccion a WAV', self.start).pack(side='left', padx=8)
+        self.button(actions, 'Extraer seleccion', self.start).pack(side='left', padx=8)
         self.stop = ttk.Button(actions, text='Cancelar', command=self.cancel.set, state='disabled')
         self.stop.pack(side='left')
         self.button(actions, 'Abrir destino', self.open_output).pack(side='right')
@@ -128,20 +147,84 @@ class App(tk.Tk):
             row=7, column=0, columnspan=3, sticky='w', pady=(8, 0))
         self.progress = ttk.Progressbar(self.main, mode='determinate')
         self.progress.grid(row=5, column=0, columnspan=3, sticky='ew')
-        self.log = tk.Text(self.main, height=8, state='disabled', wrap='word')
+        self.log = tk.Text(self.main, height=8, state='disabled', wrap='word',
+                           background='#FFFFFF', foreground='#243D38',
+                           selectbackground='#CBE7DF', selectforeground='#173D33',
+                           relief='flat', highlightthickness=1, highlightbackground='#CCDCD6',
+                           padx=10, pady=8, font=('Consolas', 9))
         self.log.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(8, 0))
         labels = [('lautool', 'LAUTool Steam (.exe)'), ('quickbms', 'QuickBMS (.exe)'),
                   ('script', 'Extractor Wwise (.bms)'), ('vgmstream', 'vgmstream-cli (.exe)'),
+                  ('ffmpeg', 'FFmpeg (.exe, para MP3 a 320 kbps)'),
                   ('inventory', 'Inventario de nombres (.csv, opcional)'), ('catalog', 'Catalogo de eventos (.csv, opcional)')]
         for i, (key, label) in enumerate(labels):
             self.path_row(settings, i, label, key)
-        self.button(settings, 'Verificar herramientas', self.verify).grid(row=6, column=1, sticky='w', pady=12)
+        self.button(settings, 'Verificar herramientas', self.verify).grid(row=7, column=1, sticky='w', pady=12)
         ttk.Label(self, textvariable=self.status, anchor='w').grid(row=1, column=0, sticky='ew', padx=14, pady=(0, 8))
         self.protocol('WM_DELETE_WINDOW', self.close)
         self.after(100, self.poll)
 
+    def apply_theme(self):
+        self.configure(background='#F0F5F3')
+        style = ttk.Style(self)
+        style.theme_use('clam')
+        # Keep keyboard focus visible through color, without dotted focus elements.
+        def without_focus(layout):
+            result = []
+            for element, options in layout:
+                options = dict(options)
+                children = without_focus(options.pop('children', []))
+                if element.endswith('.focus'):
+                    result.extend(children)
+                else:
+                    if children:
+                        options['children'] = children
+                    result.append((element, options))
+            return result
+        for widget_style in ('TButton', 'TNotebook.Tab'):
+            style.layout(widget_style, without_focus(style.layout(widget_style)))
+        style.configure('.', font=('Segoe UI', 10), background='#F0F5F3',
+                        foreground='#243D38', bordercolor='#CCDCD6',
+                        lightcolor='#F0F5F3', darkcolor='#CCDCD6')
+        style.configure('TButton', background='#E0ECE7', padding=(10, 6), relief='flat')
+        style.map('TButton', background=[('disabled', '#EDF1EF'), ('pressed', '#BBD6CB'),
+                                       ('active', '#CFE2D9'), ('focus', '#CFE2D9')],
+                  foreground=[('disabled', '#7B8C86')])
+        style.configure('Accent.TButton', background='#286B58', foreground='#FFFFFF')
+        style.map('Accent.TButton', background=[('disabled', '#DCE5E1'),
+                    ('pressed', '#194A3C'), ('active', '#337E68'), ('focus', '#337E68')],
+                  foreground=[('disabled', '#7B8C86'), ('!disabled', '#FFFFFF')])
+        style.configure('TEntry', fieldbackground='#FFFFFF', padding=5)
+        style.configure('Browse.TButton', font=('Segoe UI', 9), padding=(8, 3))
+        style.configure('TCombobox', padding=5, arrowsize=14)
+        style.map('TCombobox', fieldbackground=[('readonly', '#FFFFFF')],
+                  foreground=[('disabled', '#7B8C86'), ('readonly', '#243D38')],
+                  selectbackground=[('readonly', '#FFFFFF')],
+                  selectforeground=[('readonly', '#243D38')])
+        style.configure('TNotebook', borderwidth=0)
+        style.configure('TNotebook.Tab', padding=(14, 8), background='#E0ECE7')
+        style.map('TNotebook.Tab', background=[('selected', '#BFD5CA'), ('active', '#D3E3DB')],
+                  foreground=[('selected', '#173D33')],
+                  font=[('selected', ('Segoe UI', 11, 'bold'))],
+                  padding=[('selected', (18, 10))])
+        style.configure('Treeview', background='#FFFFFF', fieldbackground='#FFFFFF',
+                        rowheight=29, borderwidth=0)
+        style.configure('Treeview.Heading', background='#DFEBE5', foreground='#284C40',
+                        font=('Segoe UI', 10, 'bold'), padding=(8, 8), relief='flat')
+        style.map('Treeview.Heading', background=[('active', '#CFE2D9')])
+        style.map('Treeview', background=[('selected', '#CBE7DF')],
+                  foreground=[('selected', '#173D33')])
+        style.configure('Horizontal.TProgressbar', background='#43866B',
+                        troughcolor='#E0ECE7', borderwidth=0)
+        self.option_add('*TCombobox*Listbox.background', '#FFFFFF')
+        self.option_add('*TCombobox*Listbox.foreground', '#243D38')
+        self.option_add('*TCombobox*Listbox.selectBackground', '#CBE7DF')
+        self.option_add('*TCombobox*Listbox.selectForeground', '#173D33')
+
     def button(self, frame, text, command):
         button = ttk.Button(frame, text=text, command=command)
+        if text == 'Extraer seleccion':
+            button.configure(style='Accent.TButton')
         self.controls.append(button)
         return button
 
@@ -154,7 +237,9 @@ class App(tk.Tk):
             path = filedialog.askdirectory() if directory else filedialog.askopenfilename()
             if path:
                 self.vars[key].set(path)
-        self.button(frame, 'Examinar...', choose).grid(row=row, column=2, padx=(8, 0))
+        browse = self.button(frame, 'Examinar...', choose)
+        browse.configure(style='Browse.TButton')
+        browse.grid(row=row, column=2, padx=(8, 0), pady=5)
 
     def save(self):
         saved = portable_settings({k: v.get() for k, v in self.vars.items()})
@@ -162,9 +247,11 @@ class App(tk.Tk):
 
     def verify(self):
         try:
-            Extractor({k: self.vars[k].get() for k in TOOL_KEYS})
+            engine = Extractor({k: self.vars[k].get() for k in TOOL_KEYS})
+            if self.vars['output_format'].get() != 'WAV' and not engine.tools['ffmpeg'].is_file():
+                raise ValueError('Configura FFmpeg para exportar MP3.')
             self.save()
-            messagebox.showinfo('Herramientas', 'Los cuatro archivos estan disponibles. La compatibilidad se valida al extraer.')
+            messagebox.showinfo('Herramientas', 'Herramientas disponibles para el formato elegido. La compatibilidad se valida al extraer.')
         except Exception as e:
             messagebox.showerror('Herramientas', str(e))
 
@@ -178,7 +265,7 @@ class App(tk.Tk):
             try:
                 function()
             except Cancelled:
-                self.messages.put(('log', 'Cancelado. Se conservan los WAV validados y se eliminan los temporales.'))
+                self.messages.put(('log', 'Cancelado. Se conservan los audios validados y se eliminan los temporales.'))
             except Exception as e:
                 self.messages.put(('error', str(e)))
             finally:
@@ -211,7 +298,7 @@ class App(tk.Tk):
             if query in (name + ' ' + relative).lower():
                 try:
                     self.file_sizes[str(i)] = path.stat().st_size
-                    size = f'{self.file_sizes[str(i)] / 1_000:.2f} KB'
+                    size = f'{(self.file_sizes[str(i)] + 500) // 1_000:,}'.replace(',', '.') + ' KB'
                 except OSError:
                     self.file_sizes[str(i)] = None
                     size = '?'
@@ -253,6 +340,9 @@ class App(tk.Tk):
                 raise ValueError('El origen cambio; vuelve a buscar archivos.')
             emit = lambda s: self.messages.put(('log', s))
             engine = Extractor({k: self.vars[k].get() for k in TOOL_KEYS}, self.cancel, emit)
+            output_format = {'WAV': 'wav', 'MP3': 'mp3', 'WAV + MP3': 'both'}[self.vars['output_format'].get()]
+            if output_format != 'wav' and not engine.tools['ffmpeg'].is_file():
+                raise ValueError('Configura FFmpeg para exportar MP3.')
             names, events = load_names(self.vars['inventory'].get(), self.vars['catalog'].get())
             emit(f'Catalogo: {len(events)} asociaciones cargadas.' if events else
                  'Sin catalogo de eventos: los audios saldran como sin_evento + ID.')
@@ -264,7 +354,7 @@ class App(tk.Tk):
                     if self.cancel.is_set():
                         raise Cancelled()
                     try:
-                        engine.extract(path, source, output, names, events)
+                        engine.extract(path, source, output, names, events, output_format)
                     except Cancelled:
                         raise
                     except Exception as e:
@@ -285,7 +375,7 @@ class App(tk.Tk):
             if not events:
                 raise ValueError('Selecciona CATALOGO.csv en Herramientas y nombres.')
             if not messagebox.askyesno('Actualizar nombres',
-                    'Renombrar WAV registrados con eventos conocidos en el destino, sin reconvertir audio?'):
+                    'Renombrar WAV/MP3 registrados con eventos conocidos en el destino, sin reconvertir audio?'):
                 return
             self.launch(lambda: repair_output(output, events, apply=True, cancel=self.cancel,
                                              emit=lambda s: self.messages.put(('log', s))))
@@ -317,6 +407,7 @@ class App(tk.Tk):
                     self.busy = False
                     for control in self.controls:
                         control.configure(state='normal')
+                    self.output_selector.configure(state='readonly')
                     self.stop.configure(state='disabled')
                     if self.closing:
                         self.destroy()

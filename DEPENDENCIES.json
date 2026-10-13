@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "application_version": "1.3.2",
+  "application_version": "1.4.3",
   "application_license": "MIT",
   "runtime": {
     "python": ">=3.10",
@@ -19,33 +19,39 @@
   ],
   "external_tools": [
     {
+      "name": "FFmpeg with libmp3lame",
+      "tested_version": "3.4.1",
+      "path": "tools/ffmpeg/ffmpeg.exe",
+      "bundled": false,
+      "license_review": "User-supplied build reports GPL version 3 or later; -L notice saved in tools/ffmpeg/LICENSE.txt. Local use only; corresponding source not bundled."
+    },
+    {
       "name": "LAUTool Steam",
       "tested_version": "0.3",
       "path": "tools/LAUTool_0.3/LAUTool_steam.exe",
-      "bundled": true,
+      "bundled": false,
       "license_review": "No redistribution license identified in supplied files"
     },
     {
       "name": "QuickBMS",
       "path": "tools/quickbms/bin/quickbms.exe",
-      "bundled": true,
+      "bundled": false,
       "license_review": "Upstream documentation states GPL 2.0",
       "upstream": "https://aluigi.altervista.org/quickbms.htm"
     },
     {
       "name": "Wwise PCK script",
       "path": "tools/quickbms/wwise_pck_extractor.bms",
-      "bundled": true,
+      "bundled": false,
       "license_review": "Redistribution terms not verified; authors credited upstream",
       "upstream": "https://github.com/bnnm/wwiser-utils/blob/master/scripts/wwise_pck_extractor.bms"
     },
     {
       "name": "vgmstream and codec DLLs",
       "path": "tools/vgmstream/bin/vgmstream-cli.exe",
-      "bundled": true,
+      "bundled": false,
       "license_review": "Core COPYING plus dependency-specific notices; binary bundle not audited",
       "upstream": "https://github.com/vgmstream/vgmstream-releases/releases"
     }
-  ],
-  "redistribution_review": "Incomplete; local use only"
+  ]
 }

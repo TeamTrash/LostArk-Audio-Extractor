@@ -10,17 +10,20 @@ from version import __version__
 
 ROOT = Path(__file__).resolve().parent
 SOURCE_FILES = (
+    'assets/app.png', 'assets/app.ico',
     '.gitignore', 'app.py', 'core.py', 'name_decoder.py', 'version.py',
-    'build_release.py', 'repair_names.py', 'Iniciar.cmd', 'README.md', 'LICENSE',
+    'build_release.py', 'build_windows.py', 'exe_entry.py', 'WINDOWS_EXE.md',
+    'repair_names.py', 'Iniciar.cmd', 'README.md', 'LICENSE',
     'THIRD_PARTY_NOTICES.md', 'DEPENDENCIES.json', 'CHANGELOG.md',
     'CONTRIBUTING.md', 'RELEASE.md', 'LOCAL_USE_ONLY.md', 'tools/README.md',
-    'licenses/lostark-explorer-MIT.txt',
+    'licenses/lostark-explorer-MIT.txt', 'licenses/Tcl-8.6.12-license.terms',
     'tests/test_core.py', 'tests/test_names.py', 'tests/test_settings.py',
-    'tests/test_table.py', 'tests/test_release.py', 'tests/test_repair_names.py',
+    'tests/test_table.py', 'tests/test_release.py', 'tests/test_repair_names.py', 'tests/test_formats.py',
 )
 LOCAL_DATA_FILES = ('data/event_names.local.json',)
 PREFIX = f'LoaAudioExtractor-{__version__}'
 TOOL_FILES = (
+    'tools/ffmpeg/ffmpeg.exe', 'tools/ffmpeg/LICENSE.txt',
     'tools/LAUTool_0.3/LAUTool_steam.exe',
     'tools/quickbms/bin/quickbms.exe', 'tools/quickbms/bin/quickbms.txt',
     'tools/quickbms/bin/changelog.txt', 'tools/quickbms/wwise_pck_extractor.bms',

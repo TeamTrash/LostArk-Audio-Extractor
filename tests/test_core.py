@@ -12,7 +12,76 @@ from core import Cancelled, Extractor, TOOL_KEYS, inventory, validate_paths, wav
 
 
 class CoreTests(unittest.TestCase):
+    def test_localized_id_collision_creates_three_distinct_wavs(self):
+        from core import EventCatalog
+        pck = self.source / 'SOUND_DIALOG.pck'
+        pck.write_bytes(b'AKPKtest')
+        languages = {'Spanish(Spain)': 'es', 'English(US)': 'en', 'Korean': 'ko'}
+        events = EventCatalog({(lang, 'SOUND_DIALOG', '42'): 'same_event' for lang in languages})
+        engine = Extractor(self.tools)
+        def command(args, cwd, log):
+            if '-Y' in args:
+                for lang in languages:
+                    media = Path(args[-1]) / lang.lower()
+                    media.mkdir()
+                    (media / '42.wem').write_bytes(b'RIFFtest')
+            else:
+                self.fake_command(args, cwd, log)
+        with patch.object(engine, 'command', side_effect=command):
+            report = engine.extract(pck, self.source, self.out, events=events)
+        self.assertEqual({Path(row['wav']).name for row in report['wavs']},
+                         {'same_event__es__42.wav', 'same_event__en__42.wav', 'same_event__ko__42.wav'})
+        self.assertEqual(len(list(self.out.rglob('*.wav'))), 3)
+
+    def test_same_media_id_is_resolved_separately_for_each_language(self):
+        from core import EventCatalog, resolve_event, event_language
+        events = EventCatalog({(lang, 'SOUND_DIALOG', '42'): name for lang, name in (
+            ('Spanish(Spain)', 'dialog_es'), ('English(US)', 'dialog_en'), ('Korean', 'dialog_ko'))})
+        for lang, code in [('Spanish(Spain)', 'es'), ('English(US)', 'en'), ('Korean', 'ko')]:
+            found, name = resolve_event(events, 'sound_dialog', '42', lang)
+            self.assertEqual(name, 'dialog_' + code)
+            self.assertEqual(event_language(found, name), code)
+        self.assertEqual(resolve_event(events, 'SOUND_DIALOG', '42', 'unknown'), ('SFX', ''))
+        self.assertEqual(resolve_event(events, 'OTHER', '42', 'Korean'), ('Korean', ''))
+        self.assertEqual(event_language('Spanish(Spain)', 'wrong_tag {l=ko}'), 'es')
+        self.assertEqual(event_language('SFX', 'wrong_tag {l=ko}'), 'SFX')
+
+    def test_flat_pck_uses_catalog_language_and_requested_filename(self):
+        pck = self.source / 'SOUND_BGM_GLOBAL.pck'
+        pck.write_bytes(b'AKPKtest')
+        engine = Extractor(self.tools)
+        def command(args, cwd, log):
+            if args[0] == engine.tools['quickbms'] and '-Y' in args:
+                media = Path(args[-1]) / 'korean'
+                media.mkdir()
+                (media / '60147531.wem').write_bytes(b'RIFFtest')
+            else:
+                self.fake_command(args, cwd, log)
+        events = {('Korean', 'SOUND_BGM_GLOBAL', '60147531'):
+                  'bgm_global_jukebox_m195_2d_play {l=ko}'}
+        with patch.object(engine, 'command', side_effect=command):
+            report = engine.extract(pck, self.source, self.out, events=events)
+        self.assertEqual(Path(report['wavs'][0]['wav']).name,
+                         'bgm_global_jukebox_m195_2d_play__ko__60147531.wav')
+
+    def test_event_resolution_ignores_generic_folder_but_preserves_language(self):
+        from core import resolve_event, event_language
+        events = {('Korean', 'SOUND_BGM_GLOBAL', '60147531'):
+                  'bgm_global_jukebox_m195_2d_play {l=ko}'}
+        lang, names = resolve_event(events, 'SOUND_BGM_GLOBAL', '60147531', 'WwiseAudioPackage')
+        self.assertEqual(names, 'bgm_global_jukebox_m195_2d_play {l=ko}')
+        self.assertEqual(event_language(lang, names), 'ko')
+        self.assertEqual(resolve_event(events, 'SOUND_BGM_GLOBAL', '60147531', 'Spanish(Spain)')[1], '')
+        self.assertEqual(resolve_event(events, 'OTHER', '60147531')[1], '')
+        events[('English(US)', 'SOUND_BGM_GLOBAL', '60147531')] = 'english_song'
+        self.assertEqual(resolve_event(events, 'SOUND_BGM_GLOBAL', '60147531')[1], '')
+        self.assertEqual(resolve_event(events, 'SOUND_BGM_GLOBAL', '60147531', 'korean')[0], 'Korean')
+
     def setUp(self):
+        # Explorer metadata is tested separately; these tests assert audio lifecycle.
+        folder_patch = patch('core.general_folder')
+        folder_patch.start()
+        self.addCleanup(folder_patch.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -22,6 +91,30 @@ class CoreTests(unittest.TestCase):
         self.wem = self.source / '123.wem'
         self.wem.write_bytes(b'RIFFtest')
         self.tools = {k: __file__ for k in TOOL_KEYS}
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows folder customization')
+    def test_general_folder_metadata_and_preservation(self):
+        # Exercise the real helper independently of the extraction fixture patch.
+        import importlib.util
+        import os
+        spec = importlib.util.spec_from_file_location('folder_core', Path(__file__).parents[1] / 'core.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        folder = self.root / 'general'
+        folder.mkdir()
+        module.general_folder(folder)
+        ini = folder / 'desktop.ini'
+        self.assertIn('FolderType=Generic', ini.read_text(encoding='utf-16'))
+        self.assertEqual(ini.stat().st_file_attributes & 6, 6)
+        self.assertEqual(folder.stat().st_file_attributes & 1, 1)
+        original = ini.read_bytes()
+        module.general_folder(folder)
+        self.assertEqual(ini.read_bytes(), original)
+        other = self.root / 'custom'
+        other.mkdir()
+        (other / 'desktop.ini').write_text('existing customization')
+        module.general_folder(other)
+        self.assertEqual((other / 'desktop.ini').read_text(), 'existing customization')
 
     def fake_command(self, args, cwd, log):
         wav = Path(args[args.index('-o') + 1])
@@ -54,8 +147,8 @@ class CoreTests(unittest.TestCase):
             engine.extract(self.wem, self.source, self.out)
             self.assertEqual(command.call_count, 1)
         self.assertEqual(self.wem.read_bytes(), before)
-        self.assertTrue((self.out / 'Audios_numericos').is_dir())
-        self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in (self.out / 'Audios_numericos').iterdir()))
+        self.assertTrue((self.out / '123__123').is_dir())
+        self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in (self.out / '123__123').iterdir()))
         self.assertFalse(list(self.out.rglob('work_*')))
         self.wem.write_bytes(before + b'changed')
         with self.assertRaises(ValueError):
@@ -79,7 +172,7 @@ class CoreTests(unittest.TestCase):
         with patch.object(engine, 'command', side_effect=self.fake_command) as command:
             decoded = engine.extract(encoded, self.source, self.out)
             self.assertEqual(decoded['wavs'][0]['media_id'], '666957883')
-            self.assertEqual(decoded['folder'], 'Audios_numericos')
+            self.assertEqual(decoded['folder'], '666957883__333OWAHHICDIL5V88F9GF')
             legacy_out = self.root / 'legacy'
             token = hashlib.sha256(str(encoded.relative_to(self.source)).encode()).hexdigest()[:12]
             old_job = legacy_out / 'paquetes' / (encoded.stem[:55] + '__' + token)
@@ -251,8 +344,8 @@ class CoreTests(unittest.TestCase):
             engine.extract(self.wem, self.source, self.out)
             engine.extract(other, self.source, self.out)
         self.assertEqual(len(list((self.out / '.loa_audio').glob('*.json'))), 2)
-        self.assertEqual(len(list((self.out / 'Audios_numericos').glob('*.wav'))), 2)
-        self.assertEqual(len(list((self.out / 'Audios_numericos').iterdir())), 2)
+        self.assertEqual(len(list((self.out / '123__123').glob('*.wav'))), 2)
+        self.assertEqual(len(list((self.out / '123__123').iterdir())), 2)
 
     def test_pck_flattens_internal_folders_and_cleans_intermediates(self):
         pck = self.source / 'NV1OQ9OCBH9U2521OP359JOVONUGX5H.pck'
@@ -269,10 +362,10 @@ class CoreTests(unittest.TestCase):
                 self.fake_command(args, cwd, log)
         with patch.object(engine, 'command', side_effect=fake):
             result = engine.extract(pck, self.source, self.out)
-        folder = self.out / 'SOUND_BGM_PAPUNIKA_NONSTREAM'
+        folder = self.out / 'SOUND_BGM_PAPUNIKA_NONSTREAM__NV1OQ9OCBH9U2521OP359JOVONUGX5H'
         self.assertEqual(result['wav_count'], 2)
         self.assertEqual({p.name for p in folder.iterdir()},
-                         {'sin_evento__SFX__42.wav', 'sin_evento__SFX__42_2.wav'})
+                         {'sin_evento__ko__42.wav', 'sin_evento__en__42.wav'})
         self.assertEqual(len(list(folder.iterdir())), 2)
         self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in folder.iterdir()))
         self.assertFalse(list(self.out.rglob('*.wem')))
@@ -294,22 +387,23 @@ class CoreTests(unittest.TestCase):
         with patch.object(engine, 'command', side_effect=self.fake_command):
             report = engine.extract(self.wem, self.source, self.out)
         self.assertEqual(report['state'], 'complete')
-        self.assertEqual(len(list((self.out / 'Audios_numericos').iterdir())), 1)
+        self.assertEqual(len(list((self.out / '123__123').iterdir())), 1)
 
-    def test_numeric_prefixes_share_folder_but_named_files_keep_their_name(self):
+    def test_each_source_has_decoded_and_original_name_folder(self):
         engine = Extractor(self.tools)
         with patch.object(engine, 'command', side_effect=self.fake_command):
-            for name, expected in [('123', 'Audios_numericos'), ('456', 'Audios_numericos'),
-                                   ('7voice', 'Audios_numericos'), ('voice7', 'voice7')]:
+            for name, expected in [('123', '123__123'), ('456', '456__456'),
+                                   ('7voice', '7voice__7voice'), ('voice7', 'voice7__voice7')]:
                 with self.subTest(name=name):
                     path = self.source / (name + '.wem')
                     path.write_bytes(b'RIFFtest')
                     result = engine.extract(path, self.source, self.out)
                     self.assertEqual(result['folder'], expected)
-        numeric = list((self.out / 'Audios_numericos').iterdir())
-        self.assertEqual(len(numeric), 3)
+        numeric = list((self.out / '123__123').iterdir())
+        self.assertEqual(len(numeric), 1)
         self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in numeric))
-        self.assertEqual(len(list((self.out / 'voice7').iterdir())), 1)
+        self.assertEqual(len(list((self.out / 'voice7__voice7').iterdir())), 1)
+        self.assertEqual(len(list((self.out / '456__456').iterdir())), 1)
         self.assertFalse((self.out / '123').exists())
         self.assertFalse((self.out / '456').exists())
 
@@ -328,7 +422,7 @@ class CoreTests(unittest.TestCase):
             engine.extract(second, second.parent, self.out)
         self.assertEqual(Path(one['wavs'][0]['wav']).name, 'sin_evento__SFX__123.wav')
         self.assertEqual(Path(two['wavs'][0]['wav']).name, 'sin_evento__SFX__123_2.wav')
-        self.assertEqual(len(list((self.out / 'Audios_numericos').iterdir())), 2)
+        self.assertEqual(len(list((self.out / '123__123').iterdir())), 2)
 
     def test_existing_v11_folder_is_reused_without_moving_audio(self):
         metadata = self.out / '.loa_audio'
@@ -349,7 +443,7 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(engine.extract(self.wem, self.source, self.out), report)
             command.assert_not_called()
         self.assertTrue(wav.is_file())
-        self.assertFalse((self.out / 'Audios_numericos').exists())
+        self.assertFalse((self.out / '123__123').exists())
 
     def test_untracked_audio_is_not_overwritten(self):
         engine = Extractor(self.tools)
@@ -383,13 +477,15 @@ class CoreTests(unittest.TestCase):
         with patch.object(engine, 'command', side_effect=fake):
             with self.assertRaises(RuntimeError):
                 engine.extract(pck, self.source, self.out)
-            self.assertEqual(len(list((self.out / 'SOUND_TEST').iterdir())), 1)
+            self.assertEqual(len(list((self.out / 'SOUND_TEST__SOUND_TEST').iterdir())), 1)
             self.assertFalse(list(self.out.rglob('work_*')))
             report = engine.extract(pck, self.source, self.out)
         self.assertEqual(conversions, ['1', '2', '2'])
         self.assertEqual(report['wav_count'], 2)
-        self.assertEqual(len(list((self.out / 'SOUND_TEST').iterdir())), 2)
+        self.assertEqual(len(list((self.out / 'SOUND_TEST__SOUND_TEST').iterdir())), 2)
 
 
 if __name__ == '__main__':
     unittest.main()
+
+
