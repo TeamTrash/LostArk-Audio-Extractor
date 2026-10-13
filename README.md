@@ -1,40 +1,55 @@
-LoaAudioExtractor v1.4.3
+# Lost Ark Audio Extractor
 
-Extractor de audio de Lost Ark para Windows, con nombres de eventos, identificación de idioma y exportación a WAV y MP3.
+Codigo abierto bajo licencia MIT.
+Proyecto independiente, sin afiliacion oficial con el juego. La licencia del
+codigo no otorga derechos sobre contenidos del juego ni herramientas externas.
 
-Novedades
+## Paquete publico
 
-Formatos de salida: WAV, MP3 a 320 kbps o ambos.
+Aplicacion local para Windows. Python 3.10 o posterior con Tcl/Tk (tkinter).
+No requiere pip, cuenta, servidor ni conexion a Internet para extraer.
+Primera version: PCK/WEM -> WAV. No modifica archivos del juego.
 
-Diccionario ampliado: 210.351 asociaciones para identificar eventos y medios.
+## Inicio
 
-Carpetas con procedencia: nombre desofuscado y nombre del archivo original.
+1. Instalar Python para Windows con Tcl/Tk y el lanzador `py`.
+2. Abrir Iniciar.cmd, o ejecutar `python app.py`.
+3. Las herramientas de tools/ se detectan automaticamente. Revisarlas en
+   Herramientas y nombres; se pueden elegir otras versiones manualmente.
+4. Elegir WwiseAudioPackage (o una carpeta de muestras) y un destino separado.
+5. Buscar archivos, filtrar, seleccionar y pulsar Extraer seleccion a WAV.
 
-Nombres descriptivos: cada audio conserva su evento, idioma e ID.
 
-Interfaz renovada: colores suaves, icono personalizado, pestaña activa destacada y botones más compactos.
+Usar primero un WEM o PCK pequeno. WAV puede ocupar mucho mas que el origen.
+La comprobacion de espacio inicial es aproximada, no garantiza espacio para
+todo el lote. Los medios intermedios usan espacio temporal y se eliminan al acabar.
 
-Tamaños más legibles: KB sin decimales, con separador de miles.
+## Dependencias externas
+ 
+- LAUTool Steam 0.3: version proporcionada por el usuario; copia local en tools/LAUTool_0.3.
+- QuickBMS: https://aluigi.altervista.org/quickbms.htm
+- Script PCK: https://github.com/bnnm/wwiser-utils/blob/master/scripts/wwise_pck_extractor.bms
+- vgmstream: https://github.com/vgmstream/vgmstream-releases/releases
+  Conservar todas sus DLL junto al ejecutable, no solo el EXE.
 
-Carpetas de Windows: las nuevas carpetas de salida se configuran como «Elementos generales».
+No se descargan dependencias automaticamente ni se buscan claves. Comprobar las
+licencias de cada herramienta antes de redistribuirla; esta carpeta no concede
+derechos sobre herramientas o archivos del juego. No se garantiza compatibilidad
+con todos los clientes o actualizaciones de Lost Ark.
 
-Recuperación y continuidad
+## Nombres y limites
 
-Reanuda extracciones y recupera archivos faltantes.
+Los nombres PCK/WEM compatibles se desofuscan automaticamente sin CSV, usando
+una adaptacion del decodificador de lostark-explorer (MIT, licencia incluida en
+licenses/). La tabla mantiene la ruta/nombre original y permite buscar u ordenar
+por el nombre recuperado. Se usa tambien al nombrar las salidas de extraccion.
+PCK recupera nombres como SOUND_BGM_YORN; WEM recupera IDs, no titulos de canciones.
+Si el nombre no es compatible se conserva.
+ 
 
-Reutiliza WAV válidos para generar MP3 sin repetir la decodificación.
+Extrae WEM de PCK y convierte WEM sueltos. Los BNK intermedios se eliminan;
+esta version no renderiza eventos Wwise ni extrae automaticamente todos los medios embebidos
+en BNK. Las composiciones, voces y bancos interdependientes pueden requerir wwiser
+y el flujo avanzado de investigacion. No incluye MP3 ni funciones de modificacion.
 
-Mantiene el progreso de cada formato por separado.
-
-Permite actualizar nombres conocidos sin reconvertir el audio.
-Ejemplo de salida
-SOUND_BGM_GLOBAL__ABC123XYZ/
-├── bgm_global_jukebox_m195_2d_play__ko__60147531.wav
-└── bgm_global_jukebox_m195_2d_play__ko__60147531.mp3
-Notas
-
-El diccionario es parcial: los audios sin coincidencia mantienen sin_evento.
-
-Las extracciones anteriores conservan su estructura. Usa un destino nuevo para aplicar la organización actual.
-
-Validado con 72 pruebas automatizadas y una extracción real a WAV y MP3.
+los datos del juego usados en esas comprobaciones no se distribuyen.
