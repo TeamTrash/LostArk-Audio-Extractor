@@ -1,13 +1,13 @@
 # Release procedure
 
-## v1.4.0 deliverables
+## v1.4.7 deliverables
 
-LoaAudioExtractor-1.4.0-source.zip is the public source package. It includes MIT
+LoaAudioExtractor-1.4.7-source.zip is the public source package. It includes MIT
 licenses, source, tests, documentation, the Windows launcher and a file manifest.
 It is not a standalone executable and does not include external audio tools.
 The user's local tools/ installation remains separate and is not altered.
 
-LoaAudioExtractor-1.4.0-local-tools.zip includes copies of the required local tools,
+LoaAudioExtractor-1.4.7-local-tools.zip includes copies of the required local tools,
 DLLs and available documentation. Local use only: no claim of redistribution
 permission for LAUTool or all codec dependencies. See LOCAL_USE_ONLY.md.
 It also includes data/event_names.local.json: a local, path-free snapshot from
@@ -23,8 +23,8 @@ Run in this directory with Python 3.10+:
 python -m unittest discover -s tests -v
 python app.py --version
 python build_release.py
-python build_release.py --verify dist/LoaAudioExtractor-1.4.0-source.zip
-python build_release.py --verify dist/LoaAudioExtractor-1.4.0-local-tools.zip
+python build_release.py --verify dist/LoaAudioExtractor-1.4.7-source.zip
+python build_release.py --verify dist/LoaAudioExtractor-1.4.7-local-tools.zip
 ```
 
 Default outputs: both versioned ZIPs and dist/SHA256SUMS.txt listing both hashes.
@@ -38,7 +38,7 @@ python build_release.py --source-only
 `--output PATH` selects another release directory. To verify a download checksum:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\LoaAudioExtractor-1.4.0-local-tools.zip
+Get-FileHash -Algorithm SHA256 .\LoaAudioExtractor-1.4.7-local-tools.zip
 ```
 
 Compare with SHA256SUMS.txt. Checksums detect differences; they are not a digital

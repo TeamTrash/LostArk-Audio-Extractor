@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.4.7 — 2026-10-24
+
+- Opción persistente «Solo nombre descriptivo» para extraer y renombrar WAV/MP3.
+- Nombres como `Aldea de las Nia.wav`; duplicados numerados sin sobrescribir.
+- Se puede volver al nombre completo; evento e ID permanecen en los metadatos.
+- Sin traducción disponible se mantiene el nombre técnico con idioma e ID.
+
+## 1.4.6 — 2026-10-24
+
+- Selector persistente para nombres en español, inglés o coreano, independiente del idioma del audio.
+- 1.477 títulos españoles y 1.476 ingleses verificados en las bases locales.
+- Coreano conserva nombres técnicos porque no hay textos coreanos en las bases disponibles.
+- Actualizar nombres permite cambiar el idioma de títulos existentes sin convertir de nuevo el audio.
+
+## 1.4.5 — 2026-10-24
+
+- Títulos descriptivos en español para 1.926 asociaciones (1.477 eventos, 765 de música).
+- Nombres título__evento__idioma__ID, conservando los eventos técnicos.
+- Actualizar nombres añade títulos también a WAV/MP3 ya nombrados; sin reconversión.
+- Omite 60 eventos con etiquetas ambiguas y conserva nombres sin título verificado.
+
+## 1.4.4 — 2026-10-23
+
+- 390.009 asociaciones por idioma/paquete/medio (+179.658); conserva todas las anteriores.
+
+- Diccionario reconstruido con LOA_data_db actualizado y bancos actuales del juego.
+- Conserva asociaciones anteriores y separa los IDs por paquete e idioma.
+- Nuevas asociaciones requieren evidencia de evento, banco y ubicación del audio.
+
 ## 1.4.3
 
 - Pestaña activa más oscura, grande y en negrita; botones Examinar compactos y separados.

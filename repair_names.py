@@ -7,7 +7,7 @@ import re
 import shutil
 from pathlib import Path
 
-from core import Cancelled, Extractor, load_names, slug, validate_saved_audio, resolve_event, event_language
+from core import Cancelled, Extractor, load_names, slug, validate_saved_audio, resolve_event, event_language, descriptive_name
 from name_decoder import audio_name
 
 
@@ -46,6 +46,9 @@ def finish_pending(output, marker, report):
     row.setdefault('previous_names', []).append(pending['old'])
     row['wav'] = pending['new']
     row['events'] = pending['events']
+    if 'descriptive_title' in pending:
+        row['descriptive_title'] = pending['descriptive_title']
+    row['title_only'] = pending.get('title_only', False)
     del report['pending_name']
     Extractor.save_report(marker, report)
     return True
@@ -76,22 +79,39 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
             if cancel is not None and cancel.is_set():
                 raise Cancelled()
             old = audio_path(output, row['wav'])
-            if not old.name.startswith('sin_evento__') or row.get('events'):
-                summary['already_named'] += 1
-                continue
             language, names = resolve_event(events, package, row['media_id'],
                                             Path(row.get('media_source', '')).parent, source.parent)
+            unnamed = old.name.startswith('sin_evento__') and not row.get('events')
+            if not unnamed:
+                prior_events = row.get('events', '')
+                _, title = descriptive_name(prior_events, events, 160)
+                technical = slug(re.sub(r'\{[^}]*\}', '', prior_events.split(' | ')[0]))
+                managed_title = bool(row.get('descriptive_title'))
+                if ((not title and not managed_title) or
+                        (not managed_title and not old.name.startswith(technical + '__'))):
+                    summary['already_named'] += 1
+                    continue
+                names = prior_events
             if not names:
                 summary['unknown'] += 1
                 continue
             validate_saved_audio(old, row)
             name = slug(re.sub(r'\{[^}]*\}', '', names.split(' | ')[0]))
             suffix = '__' + slug(event_language(language, names))[:16] + '__' + slug(row['media_id'])[:24]
-            room = min(80, 245 - len(str(old.parent)) - 1 - len(suffix) - len('_9999999.wav'))
+            room = min(160, 245 - len(str(old.parent)) - 1 - len(suffix) - len('_9999999.wav'))
             if room < 1:
                 raise ValueError('Destino demasiado largo para renombrar.')
-            stem = name[:room] + suffix
+            name, title = descriptive_name(names, events, room)
+            title_only = bool(title and getattr(events, 'title_only', False))
+            if (not unnamed and row.get('descriptive_title') == title
+                    and bool(row.get('title_only')) == title_only):
+                summary['already_named'] += 1
+                continue
+            stem = name if title_only else name + suffix
             dest = old.with_name(stem + old.suffix)
+            if dest == old or (not unnamed and not title and not row.get('descriptive_title')):
+                summary['already_named'] += 1
+                continue
             number = 1
             while dest.exists() or dest in reserved:
                 number += 1
@@ -112,7 +132,8 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
                 # Persist intent before moving; interruption recovery checks the audio hash.
                 report['pending_name'] = dict(index=index, old=row['wav'],
                                               new=str(dest.relative_to(output)),
-                                              sha256=digest(old), events=names)
+                                              sha256=digest(old), events=names, descriptive_title=title,
+                                              title_only=title_only)
                 Extractor.save_report(marker, report)
                 finish_pending(output, marker, report)
                 summary['renamed'] += 1

@@ -94,7 +94,9 @@ class App(tk.Tk):
         self.headings = {'name': 'Nombre desofuscado', 'path': 'Carpeta / archivo original', 'size': 'Tamaño'}
         saved = load_settings()
         self.vars = {k: tk.StringVar(value=saved.get(k, '')) for k in
-                     ('source', 'output', 'inventory', 'catalog', 'output_format', *TOOL_KEYS)}
+                     ('source', 'output', 'inventory', 'catalog', 'output_format', 'title_language', 'title_only', *TOOL_KEYS)}
+        if self.vars['title_language'].get() not in ('Español', 'Inglés', 'Coreano'):
+            self.vars['title_language'].set('Español')
         if self.vars['output_format'].get() not in ('WAV', 'MP3', 'WAV + MP3'):
             self.vars['output_format'].set('WAV')
         self.search = tk.StringVar()
@@ -122,6 +124,18 @@ class App(tk.Tk):
                                            values=('WAV', 'MP3', 'WAV + MP3'), state='readonly', width=13)
         self.output_selector.pack(side='left')
         self.controls.append(self.output_selector)
+        title_bar = ttk.Frame(self.main)
+        title_bar.grid(row=8, column=0, columnspan=3, sticky='ew', pady=(8, 0))
+        ttk.Label(title_bar, text='Idioma de los nombres').pack(side='left', padx=(0, 8))
+        self.title_selector = ttk.Combobox(title_bar, textvariable=self.vars['title_language'],
+            values=('Español', 'Inglés', 'Coreano'), state='readonly', width=11)
+        self.title_selector.pack(side='left')
+        self.controls.append(self.title_selector)
+        title_option = ttk.Checkbutton(self.main, text='Solo nombre descriptivo',
+            variable=self.vars['title_only'], onvalue='1', offvalue='0')
+        title_option.grid(row=9, column=0, columnspan=3, sticky='w', pady=(4, 0))
+        self.controls.append(title_option)
+        ttk.Label(title_bar, text='  Sin título traducido: nombre técnico. Coreano sin títulos locales.').pack(side='left')
         self.search.trace_add('write', lambda *_: self.render())
         table_frame = ttk.Frame(self.main)
         table_frame.grid(row=3, column=0, columnspan=3, sticky='nsew')
@@ -343,7 +357,9 @@ class App(tk.Tk):
             output_format = {'WAV': 'wav', 'MP3': 'mp3', 'WAV + MP3': 'both'}[self.vars['output_format'].get()]
             if output_format != 'wav' and not engine.tools['ffmpeg'].is_file():
                 raise ValueError('Configura FFmpeg para exportar MP3.')
-            names, events = load_names(self.vars['inventory'].get(), self.vars['catalog'].get())
+            names, events = load_names(self.vars['inventory'].get(), self.vars['catalog'].get(),
+                {'Español': 'es', 'Inglés': 'en', 'Coreano': 'ko'}[self.vars['title_language'].get()],
+                title_only=self.vars['title_only'].get() == '1')
             emit(f'Catalogo: {len(events)} asociaciones cargadas.' if events else
                  'Sin catalogo de eventos: los audios saldran como sin_evento + ID.')
             self.save()
@@ -371,7 +387,9 @@ class App(tk.Tk):
             if not self.vars['output'].get():
                 raise ValueError('Selecciona una carpeta de destino.')
             output = Path(self.vars['output'].get()).resolve()
-            _, events = load_names(catalog_csv=self.vars['catalog'].get())
+            _, events = load_names(catalog_csv=self.vars['catalog'].get(),
+                title_language={'Español': 'es', 'Inglés': 'en', 'Coreano': 'ko'}[self.vars['title_language'].get()],
+                title_only=self.vars['title_only'].get() == '1')
             if not events:
                 raise ValueError('Selecciona CATALOGO.csv en Herramientas y nombres.')
             if not messagebox.askyesno('Actualizar nombres',
@@ -408,6 +426,7 @@ class App(tk.Tk):
                     for control in self.controls:
                         control.configure(state='normal')
                     self.output_selector.configure(state='readonly')
+                    self.title_selector.configure(state='readonly')
                     self.stop.configure(state='disabled')
                     if self.closing:
                         self.destroy()

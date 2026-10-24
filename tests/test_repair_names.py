@@ -12,6 +12,81 @@ from repair_names import digest, repair_output
 
 
 class RepairNamesTests(unittest.TestCase):
+    def test_title_only_collision_repeat_and_restore_full_name(self):
+        titles = {'known_song': 'Aldea de las Nia'}
+        full = core.EventCatalog(self.events, titles)
+        simple = core.EventCatalog(self.events, titles, title_only=True)
+        repair_output(self.output, full, apply=True)
+        row = json.loads(self.marker.read_text())['wavs'][0]
+        old = self.output / row['wav']
+        before = digest(old)
+        occupied = old.with_name('Aldea de las Nia.wav')
+        occupied.write_bytes(b'unrelated')
+        self.assertEqual(repair_output(self.output, simple, apply=True)['renamed'], 1)
+        row = json.loads(self.marker.read_text())['wavs'][0]
+        renamed = self.output / row['wav']
+        self.assertEqual(renamed.name, 'Aldea de las Nia_2.wav')
+        self.assertEqual(digest(renamed), before)
+        self.assertTrue(row['title_only'])
+        self.assertEqual(repair_output(self.output, simple, apply=True)['renamed'], 0)
+        self.assertEqual(repair_output(self.output, full, apply=True)['renamed'], 1)
+        self.assertEqual(digest(old), before)
+        self.assertEqual(occupied.read_bytes(), b'unrelated')
+
+    def test_title_only_without_translation_keeps_identity(self):
+        catalog = core.EventCatalog(self.events, title_only=True)
+        repair_output(self.output, catalog, apply=True)
+        row = json.loads(self.marker.read_text())['wavs'][0]
+        self.assertEqual(Path(row['wav']).name, 'known_song__es__123.wav')
+        reserved = core.EventCatalog({}, {'known_song': 'CON'}, title_only=True)
+        self.assertEqual(core.descriptive_name('known_song', reserved, 80)[0], '_CON')
+
+    def test_switch_title_languages_preserves_audio_and_audio_locale(self):
+        before = digest(self.wav)
+        for title in ('Isabella, mi amor', 'Isabella, My Love', '', '사랑', 'Isabella, mi amor'):
+            catalog = core.EventCatalog(self.events, {'known_song': title} if title else {})
+            self.assertEqual(repair_output(self.output, catalog, apply=True)['renamed'], 1)
+            row = json.loads(self.marker.read_text())['wavs'][0]
+            audio = self.output / row['wav']
+            prefix = title + '__' if title else ''
+            self.assertEqual(audio.name, prefix + 'known_song__es__123.wav')
+            self.assertEqual(digest(audio), before)
+            self.assertEqual(repair_output(self.output, catalog, apply=True)['renamed'], 0)
+
+    def test_load_selected_title_language_and_legacy_fallback(self):
+        local = self.root / 'titles.json'
+        data = dict(schema_version=1, entries=[], event_titles={'song': 'Español'}, title_locale='es',
+                    event_titles_by_language={'en': {'song': 'English'}, 'ko': {}})
+        local.write_text(json.dumps(data), encoding='utf-8')
+        with patch.object(core, 'LOCAL_CATALOG', local):
+            self.assertEqual(core.load_names(title_language='es')[1].titles, {'song': 'Español'})
+            self.assertEqual(core.load_names(title_language='en')[1].titles, {'song': 'English'})
+            self.assertEqual(core.load_names(title_language='ko')[1].titles, {})
+            with self.assertRaises(ValueError):
+                core.load_names(title_language='unknown')
+
+    def test_existing_technical_name_gets_title_without_changing_audio_or_locale(self):
+        repair_output(self.output, self.events, apply=True)
+        named = self.output / json.loads(self.marker.read_text())['wavs'][0]['wav']
+        before = digest(named)
+        catalog = core.EventCatalog(self.events, {'known_song': 'Isabella, mi amor'})
+        self.assertEqual(repair_output(self.output, catalog)['planned'], 1)
+        self.assertTrue(named.exists())
+        self.assertEqual(repair_output(self.output, catalog, apply=True)['renamed'], 1)
+        row = json.loads(self.marker.read_text())['wavs'][0]
+        result = self.output / row['wav']
+        self.assertEqual(result.name, 'Isabella, mi amor__known_song__es__123.wav')
+        self.assertEqual(digest(result), before)
+        self.assertEqual(row['events'], 'known_song {l=es}')
+        self.assertEqual(repair_output(self.output, catalog, apply=True)['renamed'], 0)
+
+    def test_title_sanitization_and_short_path_budget(self):
+        catalog = core.EventCatalog({}, {'known_song': 'Canción: amor / paz?'})
+        name, title = core.descriptive_name('known_song', catalog, 100)
+        self.assertEqual(name, 'Canción_ amor _ paz___known_song')
+        self.assertEqual(core.descriptive_name('known_song', catalog, 16), ('known_song', ''))
+        self.assertEqual(core.descriptive_name('other_song', catalog, 100), ('other_song', ''))
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

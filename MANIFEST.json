@@ -5,8 +5,8 @@
       "sha256": "ccc4255bc08cbd4fc51f3e8901b2eeb64371ce028812d12da4773cdbea875246"
     },
     "CHANGELOG.md": {
-      "bytes": 6973,
-      "sha256": "139212f239ea92867632d1730a0f44bf9b3e20a7a834a87110d34ded32339145"
+      "bytes": 8477,
+      "sha256": "2dfabee8bb7fc60571aed21d689eff958422d7e260c929822ac7f146996cf75d"
     },
     "CONTRIBUTING.md": {
       "bytes": 1042,
@@ -14,7 +14,7 @@
     },
     "DEPENDENCIES.json": {
       "bytes": 1938,
-      "sha256": "ff7a84d34974c01d8c596aeb6c749919e1294396cf2694a75234b972a6a10175"
+      "sha256": "f5032bedf90bc5eac3ae34723b195be5756d76d8de2121afca8fe4df81a07ad3"
     },
     "Iniciar.cmd": {
       "bytes": 130,
@@ -29,24 +29,24 @@
       "sha256": "94435f1964d8d8f0def4ccf8f407092c4e02db6b1e5ce33439668fba902a374d"
     },
     "README.md": {
-      "bytes": 11173,
-      "sha256": "9c8b9d63d6c7c3d680c9000e20a4552e2f8fb2a515135234e41322297b1ae049"
+      "bytes": 12886,
+      "sha256": "2ad6ecdd2bbb79c0d0c3dbfce55d6f334ec957aacfe37680f8e74584dacb1be5"
     },
     "RELEASE.md": {
-      "bytes": 2599,
-      "sha256": "02be7e1a415afc7cc5be3827cdda81edf98a1ec51fda7a061704461472afc786"
+      "bytes": 2656,
+      "sha256": "cf4bd9e6a513fc730fdc388b76f8de079169c9073bad949176529d2f983e4b18"
     },
     "THIRD_PARTY_NOTICES.md": {
       "bytes": 4003,
       "sha256": "9cd197b0cca027f1f0c78d3df641470e0528de53425f19b7dcb811d5618cbf8f"
     },
     "WINDOWS_EXE.md": {
-      "bytes": 2162,
-      "sha256": "50f41fe2a403a3137d5c9ab78f54c8f449e0e80f6a77f4113cd26a7a985e0f6f"
+      "bytes": 2210,
+      "sha256": "c83bd18949ccf253d8993408406c28dbbe873a5df54fd2070832f0fbd101c4a5"
     },
     "app.py": {
-      "bytes": 21573,
-      "sha256": "7ee4006bcab25cbb30bd2ad233438ef001503a6032fb13e0627f3688d9884513"
+      "bytes": 23065,
+      "sha256": "39921470df35a5af62635cb4ece9d83e9b25fcf266016f9b9e2e3e471a8a9b77"
     },
     "assets/app.ico": {
       "bytes": 13965,
@@ -65,12 +65,12 @@
       "sha256": "0b8d2a6e2c4de3288a29de3e619fd6bdb2d5224d040afbbcf19e26bf871c990e"
     },
     "core.py": {
-      "bytes": 23843,
-      "sha256": "6d9b2c5847e961e518e44ef2bdbd8f559d8be72ac45ec8299b960fa80cda8e1e"
+      "bytes": 25441,
+      "sha256": "59e8f3fa4c9f32f4e7cc0869d16b91441fd8000d6bfae0fd3506892469177eaf"
     },
     "exe_entry.py": {
-      "bytes": 2570,
-      "sha256": "082837067ab9fc016fe977334cd9197a771d09572a1ea9aad83c4aba541405c1"
+      "bytes": 3006,
+      "sha256": "637e5de5061e56adfdfddaa55bf088587e010f2717ae94cdda9d4dc65533468f"
     },
     "licenses/Tcl-8.6.12-license.terms": {
       "bytes": 2255,
@@ -85,16 +85,16 @@
       "sha256": "7d33dde16083252ad3073c67b5ff0365464295a7b816f95a198c68fcda44c671"
     },
     "repair_names.py": {
-      "bytes": 6037,
-      "sha256": "6c22b902928fbefcf2d01b3e27a9dc419722f6d3663244784c8948f7ed3fc24a"
+      "bytes": 7354,
+      "sha256": "116896907ff8ca9644ebd014e3b8657802bc27d188f916ae79fe6f9a33ccfb84"
     },
     "tests/test_core.py": {
       "bytes": 25113,
       "sha256": "1f6a533a0418c7fa8215b0b24d9b5161d1b014902914462bca9c00557f8dee7d"
     },
     "tests/test_formats.py": {
-      "bytes": 5386,
-      "sha256": "4e4bce0e9fcb81522ed34676c0aeda6422f8918855cd97bc6a5f93c3959f77ad"
+      "bytes": 8327,
+      "sha256": "d1370d8e46f4737dd4c6002b3e82d66455e585acd1ac14c556f3015fd71f4951"
     },
     "tests/test_names.py": {
       "bytes": 1081,
@@ -105,8 +105,8 @@
       "sha256": "3f475ff7925a54fc10bfe65e5d5077995d7df48928333ce81df1ba88b166da56"
     },
     "tests/test_repair_names.py": {
-      "bytes": 5877,
-      "sha256": "bb03b8c2ec82d3fdee8075602bdd8f7b697d0df651a010f18255b6f8e0aad33b"
+      "bytes": 10524,
+      "sha256": "8d92d048c2112a25a2da8243125cfc10606f15a653efb5142c6c0c5540bff9d7"
     },
     "tests/test_settings.py": {
       "bytes": 3432,
@@ -122,10 +122,10 @@
     },
     "version.py": {
       "bytes": 53,
-      "sha256": "55cc2e63bb740b5c48167cb6d3716927f09364b55aaeaf5a2f732f38eed183bc"
+      "sha256": "3850de0be7adcc08b952a09866b8d93989f1f9183add8fcce4396692043e9f32"
     }
   },
   "kind": "source",
   "license": "MIT",
-  "version": "1.4.3"
+  "version": "1.4.7"
 }

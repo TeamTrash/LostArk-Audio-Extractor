@@ -6,11 +6,53 @@ import wave
 from pathlib import Path
 from unittest.mock import patch
 
-from core import Cancelled, Extractor, TOOL_KEYS, file_digest
+from core import Cancelled, Extractor, TOOL_KEYS, file_digest, EventCatalog
 from repair_names import repair_output
 
 
 class FormatTests(unittest.TestCase):
+    def test_title_only_both_formats_resume_and_restore_metadata(self):
+        names = {('SFX', 'loose', '123'): 'known_song'}
+        titles = {'known_song': 'Aldea de las Nia'}
+        simple = EventCatalog(names, titles, title_only=True)
+        with patch.object(self.engine, 'command', side_effect=self.fake):
+            result = self.engine.extract(self.wem, self.source, self.out, events=simple, output_format='both')
+            self.assertEqual({Path(r['wav']).name for r in result['wavs']},
+                             {'Aldea de las Nia.wav', 'Aldea de las Nia.mp3'})
+            hashes = {Path(r['wav']).suffix: file_digest(self.out / r['wav']) for r in result['wavs']}
+            for row in result['wavs']:
+                self.assertEqual(row['events'], 'known_song')
+                self.assertEqual(row['media_id'], '123')
+                self.assertTrue(row['title_only'])
+            commands = len(self.commands)
+            self.engine.extract(self.wem, self.source, self.out, events=simple, output_format='both')
+            self.assertEqual(len(self.commands), commands)
+            self.assertEqual(repair_output(self.out, simple, apply=True)['renamed'], 0)
+            self.assertEqual(repair_output(self.out, EventCatalog(names, titles), apply=True)['renamed'], 2)
+            for ext, checksum in hashes.items():
+                audio = next(self.out.rglob('*' + ext))
+                self.assertEqual(audio.name, 'Aldea de las Nia__known_song__SFX__123' + ext)
+                self.assertEqual(file_digest(audio), checksum)
+
+    def test_titles_for_new_wav_and_existing_mp3_keep_audio_and_resume(self):
+        plain = {('SFX', 'loose', '123'): 'bgm_jukebox_m235_2d_play'}
+        titled = EventCatalog(plain, {'bgm_jukebox_m235_2d_play': 'Isabella, mi amor'})
+        with patch.object(self.engine, 'command', side_effect=self.fake):
+            mp3 = self.engine.extract(self.wem, self.source, self.out, events=plain, output_format='mp3')
+            old = self.out / mp3['wavs'][0]['wav']
+            before = file_digest(old)
+            self.assertEqual(repair_output(self.out, titled, apply=True)['renamed'], 1)
+            renamed = next(self.out.rglob('*.mp3'))
+            self.assertEqual(file_digest(renamed), before)
+            self.assertEqual(renamed.name, 'Isabella, mi amor__bgm_jukebox_m235_2d_play__SFX__123.mp3')
+            wav = self.engine.extract(self.wem, self.source, self.out, events=titled, output_format='wav')
+            self.assertEqual(Path(wav['wavs'][0]['wav']).stem, renamed.stem)
+            self.assertEqual(wav['wavs'][0]['descriptive_title'], 'Isabella, mi amor')
+            commands = len(self.commands)
+            self.engine.extract(self.wem, self.source, self.out, events=titled, output_format='both')
+            self.assertEqual(len(self.commands), commands)
+            self.assertEqual(repair_output(self.out, titled, apply=True)['renamed'], 0)
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

@@ -48,8 +48,10 @@ class Cancelled(Exception):
 
 class EventCatalog(Mapping):
     """Read-only catalog with package/media index; avoids scanning all events per WAV."""
-    def __init__(self, events):
+    def __init__(self, events, titles=None, title_only=False):
+        self.title_only = title_only
         self._events = dict(events)
+        self.titles = titles or {}
         self.by_media = {}
         for (language, package, mid), names in self._events.items():
             if names:
@@ -103,6 +105,24 @@ def slug(value):
     return (value or 'audio')[:80]
 
 
+def descriptive_name(names, events, room):
+    event = re.sub(r'\{[^}]*\}', '', names.split(' | ')[0]).strip()
+    technical = slug(event) if names else 'sin_evento'
+    title = getattr(events, 'titles', {}).get(event.lower(), '')
+    title = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', title).strip(' .')
+    if title and getattr(events, 'title_only', False):
+        title = title[:room].rstrip(' .')
+        if re.fullmatch(r'(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?', title, re.I):
+            title = '_' + title
+        return title, title
+    # Keep the technical event intact when adding a title; omit the prefix if tight.
+    space = min(64, room - len(technical) - 2)
+    if title and space >= 8:
+        prefix = title[:space].rstrip(' .')
+        return prefix + '__' + technical, title
+    return technical[:min(80,room)], ''
+
+
 def source_folder(label, path):
     original = re.sub(r'[^A-Za-z0-9_-]+', '_', Path(path).stem).strip('_') or 'audio'
     return label + '__' + original
@@ -153,8 +173,11 @@ def inventory(root, cancel):
     return sorted(rows)
 
 
-def load_names(inventory_csv='', catalog_csv=''):
+def load_names(inventory_csv='', catalog_csv='', title_language='es', title_only=False):
+    if title_language not in ('es', 'en', 'ko'):
+        raise ValueError('Idioma de titulos no compatible.')
     packages, events = {}, {}
+    titles = {}
     if inventory_csv:
         with Path(inventory_csv).open(encoding='utf-8-sig', newline='') as f:
             for row in csv.DictReader(f):
@@ -165,6 +188,9 @@ def load_names(inventory_csv='', catalog_csv=''):
             raise ValueError('Catalogo local no compatible.')
         events = {(r['language'], r['package'], r['media_id']): r['event_names']
                   for r in data['entries']}
+        titles = data.get('event_titles_by_language', {}).get(title_language, {})
+        if not titles and title_language == data.get('title_locale', 'es'):
+            titles = data.get('event_titles', {})
     if catalog_csv:
         with Path(catalog_csv).open(encoding='utf-8-sig', newline='') as f:
             for row in csv.DictReader(f):
@@ -177,7 +203,7 @@ def load_names(inventory_csv='', catalog_csv=''):
                     key = (row['language'], package, row['media_id'])
                     values = set(events.get(key, '').split(' | ')) | set(row['event_names'].split(' | '))
                     events[key] = ' | '.join(sorted(values - {''}))
-    return packages, EventCatalog(events)
+    return packages, EventCatalog(events, titles, title_only)
 
 
 def wav_info(path, full=False):
@@ -429,14 +455,16 @@ class Extractor:
             name = slug(re.sub(r'\{[^}]*\}', '', names.split(' | ')[0])) if names else 'sin_evento'
             identity = hashlib.sha256((token + '/' + media_source).encode()).hexdigest()[:12]
             suffix = '__' + slug(event_language(language, names))[:16] + '__' + slug(mid)[:24]
-            room = min(80, 245 - len(str(job)) - 1 - len(suffix) - len('_9999999.wav'))
+            room = min(160, 245 - len(str(job)) - 1 - len(suffix) - len('_9999999.wav'))
             if room < 1:
                 raise ValueError('Ruta demasiado larga; elige un destino mas corto.')
-            stem = name[:room] + suffix
+            name, descriptive_title = descriptive_name(names, events, room)
+            title_only = bool(descriptive_title and getattr(events, 'title_only', False))
+            stem = name if title_only else name + suffix
             dest = job / (stem + '.' + output_format)
             number = 1
             while dest.exists() or dest.resolve() in claimed:
-                if dest.resolve() not in claimed:
+                if dest.resolve() not in claimed and not title_only:
                     raise ValueError(f'Archivo no registrado ya existe; no se sobrescribe: {dest}')
                 number += 1
                 dest = job / (stem + f'_{number}.' + output_format)
@@ -466,7 +494,7 @@ class Extractor:
             # On Windows rename fails if a destination appeared meanwhile.
             temporary.rename(dest)
             row = dict(prior, wav=str(dest.relative_to(output)), media_source=media_source,
-                       media_id=mid, events=names, **info)
+                       media_id=mid, events=names, descriptive_title=descriptive_title, title_only=title_only, **info)
             report['wavs'].append(row)
             if prior:
                 report['missing_wavs'].pop(media_source)

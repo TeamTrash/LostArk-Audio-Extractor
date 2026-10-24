@@ -1,6 +1,6 @@
-# Ejecutable Windows 1.4.0
+# Ejecutable Windows 1.4.7
 
-Abrir LoaAudioExtractor-1.4.0.exe con doble clic. No requiere Python instalado.
+Abrir LoaAudioExtractor-1.4.7.exe con doble clic. No requiere Python instalado.
 Un solo archivo contiene Python/Tk, herramientas/DLL, licencias y el catalogo
 local ampliado con asociaciones verificadas. Se descomprime temporalmente al iniciarse, por lo
 que el primer arranque puede tardar unos segundos. No requiere administrador.
@@ -26,7 +26,7 @@ Usar Windows x64, Python 3.12 con Tcl/Tk y un entorno aislado:
 
 ```text
 python -m pip install pyinstaller==6.22.3
-python build_windows.py --output ../releases/1.4.0/windows
+python build_windows.py --output ../releases/1.4.7/windows
 ```
 
 No sobrescribe los ZIP de codigo existentes. PyInstaller recoge Python/Tk;
@@ -36,7 +36,7 @@ audios, paquetes PCK/WEM, ni muestras. Genera MANIFEST.json y SHA256SUMS.txt.
 Diagnostico opcional del runtime empaquetado:
 
 ```text
-LoaAudioExtractor-1.4.0.exe --self-test REPORTE.json
+LoaAudioExtractor-1.4.7.exe --self-test REPORTE.json
 ```
 
 Comprueba interfaz, herramientas y catalogo, y termina. Para probar conversion,

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "application_version": "1.4.3",
+  "application_version": "1.4.7",
   "application_license": "MIT",
   "runtime": {
     "python": ">=3.10",
