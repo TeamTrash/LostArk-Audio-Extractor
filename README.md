@@ -26,21 +26,13 @@ Extrae música, voces y efectos de Lost Ark desde archivos **PCK/WEM** y los con
 
 ## Screenshots
 
-### Main interface
-Search and select audio files to extract.
-![Main interface](images/loa_extrator1.png)
+| Main interface | Extracted audio |
+| --- | --- |
+| ![Main interface](images/loa_extrator1.png) | ![Extracted audio](images/loa_extrator2.PNG) |
 
-### Extracted audio
-Output files with descriptive names.
-![Extracted audio files](images/loa_extrator2.PNG)
-
-### Audio extraction
-Extraction progress and filename options.
-![Audio extraction](images/loa_extrator3.PNG)
-
-### Filename language
-Update existing filenames from Spanish to English without converting the audio again.
-![Filename language selection](images/loa_extrator4.PNG)
+| Audio extraction | Filename language |
+| --- | --- |
+| ![Audio extraction](images/loa_extrator3.PNG) | ![Filename language](images/loa_extrator4.PNG) |
 
 ## Nombres y organización
 
@@ -85,21 +77,13 @@ Extract music, voices, and sound effects from Lost Ark **PCK/WEM** files and con
 
 ## Screenshots
 
-### Main interface
-Search and select audio files to extract.
-![Main interface](images/loa_extrator1.png)
+| Main interface | Extracted audio |
+| --- | --- |
+| ![Main interface](images/loa_extrator1.png) | ![Extracted audio](images/loa_extrator2.PNG) |
 
-### Extracted audio
-Output files with descriptive names.
-![Extracted audio files](images/loa_extrator2.PNG)
-
-### Audio extraction
-Extraction progress and filename options.
-![Audio extraction](images/loa_extrator3.PNG)
-
-### Filename language
-Update existing filenames from Spanish to English without converting the audio again.
-![Filename language selection](images/loa_extrator4.PNG)
+| Audio extraction | Filename language |
+| --- | --- |
+| ![Audio extraction](images/loa_extrator3.PNG) | ![Filename language](images/loa_extrator4.PNG) |
 
 ## Filenames and organization
 
