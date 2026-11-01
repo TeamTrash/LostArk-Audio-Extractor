@@ -11,6 +11,45 @@ from repair_names import repair_output
 
 
 class FormatTests(unittest.TestCase):
+    def test_same_title_three_audio_languages_remain_separate(self):
+        names = {(language, 'loose', '123'): 'song' for language in ('Spanish(Spain)', 'English(US)', 'Korean')}
+        catalog = EventCatalog(names, {'song': 'Misma canción'}, title_only=True, title_language='es')
+        with patch.object(self.engine, 'command', side_effect=self.fake):
+            for language, folder in [('Spanish(Spain)', 'es'), ('English(US)', 'en'), ('Korean', 'kr')]:
+                source = self.source / language
+                source.mkdir()
+                wem = source / '123.wem'
+                wem.write_bytes(b'RIFFtest')
+                report = self.engine.extract(wem, self.source, self.out, events=catalog, output_format='both')
+                for row in report['wavs']:
+                    p = Path(row['wav'])
+                    self.assertEqual(p.parent, Path('123__123') / folder)
+                    self.assertEqual(p.stem, 'Misma canción')
+                count = len(self.commands)
+                self.engine.extract(wem, self.source, self.out, events=catalog, output_format='both')
+                self.assertEqual(len(self.commands), count)
+        self.assertEqual(repair_output(self.out, catalog, apply=True)['renamed'], 0)
+
+    def test_pet_category_stays_in_source_folder_and_resumes_both_formats(self):
+        names = {('SFX', 'loose', '123'): 'pet_waiter1_attack10_shotvox1'}
+        catalog = EventCatalog(names, title_language='es')
+        with patch.object(self.engine, 'command', side_effect=self.fake):
+            result = self.engine.extract(self.wem, self.source, self.out, events=catalog, output_format='both')
+            for row in result['wavs']:
+                path = Path(row['wav'])
+                self.assertEqual(path.parent.name, 'pet')
+                self.assertEqual(path.parent.parent.name, 'SFX')
+                self.assertEqual(path.parent.parent.parent.name, '123__123')
+                self.assertEqual(path.stem, 'camarero1')
+                self.assertEqual(row['events'], names[('SFX', 'loose', '123')])
+            count = len(self.commands)
+            self.engine.extract(self.wem, self.source, self.out, events=catalog, output_format='both')
+            self.assertEqual(len(self.commands), count)
+            english = EventCatalog(names, title_language='en')
+            self.assertEqual(repair_output(self.out, english, apply=True)['renamed'], 2)
+            self.assertEqual(repair_output(self.out, english, apply=True)['renamed'], 0)
+            self.assertEqual(len(list(self.out.rglob('waiter1.*'))), 2)
+
     def test_title_only_both_formats_resume_and_restore_metadata(self):
         names = {('SFX', 'loose', '123'): 'known_song'}
         titles = {'known_song': 'Aldea de las Nia'}

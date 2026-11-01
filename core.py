@@ -48,7 +48,8 @@ class Cancelled(Exception):
 
 class EventCatalog(Mapping):
     """Read-only catalog with package/media index; avoids scanning all events per WAV."""
-    def __init__(self, events, titles=None, title_only=False):
+    def __init__(self, events, titles=None, title_only=False, title_language='es'):
+        self.title_language = title_language
         self.title_only = title_only
         self._events = dict(events)
         self.titles = titles or {}
@@ -105,7 +106,24 @@ def slug(value):
     return (value or 'audio')[:80]
 
 
+def language_folder(language, names=''):
+    return {'es': 'es', 'en': 'en', 'ko': 'kr', 'kr': 'kr'}.get(event_language(language, names), 'SFX')
+
+
+PET_FAMILY_NAMES = {'es': {'waiter1': 'camarero1'}, 'en': {'waiter1': 'waiter1'}}
+
+
+def pet_family(names):
+    event = re.sub(r'\{[^}]*\}', '', names.split(' | ')[0]).strip().lower()
+    match = re.fullmatch(r'pet_([a-z0-9]+)_.+', event)
+    return match.group(1) if match else ''
+
+
 def descriptive_name(names, events, room):
+    family = pet_family(names)
+    if family:
+        title = PET_FAMILY_NAMES.get(getattr(events, 'title_language', 'es'), {}).get(family, family)
+        return title[:room], title
     event = re.sub(r'\{[^}]*\}', '', names.split(' | ')[0]).strip()
     technical = slug(event) if names else 'sin_evento'
     title = getattr(events, 'titles', {}).get(event.lower(), '')
@@ -203,7 +221,7 @@ def load_names(inventory_csv='', catalog_csv='', title_language='es', title_only
                     key = (row['language'], package, row['media_id'])
                     values = set(events.get(key, '').split(' | ')) | set(row['event_names'].split(' | '))
                     events[key] = ' | '.join(sorted(values - {''}))
-    return packages, EventCatalog(events, titles, title_only)
+    return packages, EventCatalog(events, titles, title_only, title_language)
 
 
 def wav_info(path, full=False):
@@ -455,19 +473,24 @@ class Extractor:
             name = slug(re.sub(r'\{[^}]*\}', '', names.split(' | ')[0])) if names else 'sin_evento'
             identity = hashlib.sha256((token + '/' + media_source).encode()).hexdigest()[:12]
             suffix = '__' + slug(event_language(language, names))[:16] + '__' + slug(mid)[:24]
-            room = min(160, 245 - len(str(job)) - 1 - len(suffix) - len('_9999999.wav'))
+            target_dir = job / language_folder(language, names)
+            if pet_family(names):
+                target_dir = target_dir / 'pet'
+            if not target_dir.resolve().is_relative_to(job.resolve()):
+                raise ValueError('Carpeta de categoria fuera del archivo de origen.')
+            room = min(160, 245 - len(str(target_dir)) - 1 - len(suffix) - len('_9999999.wav'))
             if room < 1:
                 raise ValueError('Ruta demasiado larga; elige un destino mas corto.')
             name, descriptive_title = descriptive_name(names, events, room)
-            title_only = bool(descriptive_title and getattr(events, 'title_only', False))
+            title_only = bool(pet_family(names) or (descriptive_title and getattr(events, 'title_only', False)))
             stem = name if title_only else name + suffix
-            dest = job / (stem + '.' + output_format)
+            dest = target_dir / (stem + '.' + output_format)
             number = 1
             while dest.exists() or dest.resolve() in claimed:
                 if dest.resolve() not in claimed and not title_only:
                     raise ValueError(f'Archivo no registrado ya existe; no se sobrescribe: {dest}')
                 number += 1
-                dest = job / (stem + f'_{number}.' + output_format)
+                dest = target_dir / (stem + f'_{number}.' + output_format)
             if len(str(dest)) > 245:
                 raise ValueError('Ruta demasiado larga; elige un destino mas corto.')
             dest.parent.mkdir(parents=True, exist_ok=True)

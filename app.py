@@ -161,12 +161,19 @@ class App(tk.Tk):
             row=7, column=0, columnspan=3, sticky='w', pady=(8, 0))
         self.progress = ttk.Progressbar(self.main, mode='determinate')
         self.progress.grid(row=5, column=0, columnspan=3, sticky='ew')
-        self.log = tk.Text(self.main, height=8, state='disabled', wrap='word',
+        log_frame = ttk.Frame(self.main)
+        log_frame.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(8, 0))
+        log_frame.columnconfigure(0, weight=1)
+        log_frame.rowconfigure(0, weight=1)
+        self.log = tk.Text(log_frame, height=8, state='disabled', wrap='word',
                            background='#FFFFFF', foreground='#243D38',
                            selectbackground='#CBE7DF', selectforeground='#173D33',
                            relief='flat', highlightthickness=1, highlightbackground='#CCDCD6',
                            padx=10, pady=8, font=('Consolas', 9))
-        self.log.grid(row=6, column=0, columnspan=3, sticky='ew', pady=(8, 0))
+        self.log.grid(row=0, column=0, sticky='nsew')
+        self.log_scrollbar = ttk.Scrollbar(log_frame, orient='vertical', command=self.log.yview)
+        self.log_scrollbar.grid(row=0, column=1, sticky='ns')
+        self.log.configure(yscrollcommand=self.log_scrollbar.set)
         labels = [('lautool', 'LAUTool Steam (.exe)'), ('quickbms', 'QuickBMS (.exe)'),
                   ('script', 'Extractor Wwise (.bms)'), ('vgmstream', 'vgmstream-cli (.exe)'),
                   ('ffmpeg', 'FFmpeg (.exe, para MP3 a 320 kbps)'),
@@ -410,9 +417,11 @@ class App(tk.Tk):
             while True:
                 kind, value = self.messages.get_nowait()
                 if kind in ('log', 'error'):
+                    follow_end = self.log.yview()[1] >= 0.999
                     self.log.configure(state='normal')
                     self.log.insert('end', value + '\n')
-                    self.log.see('end')
+                    if follow_end:
+                        self.log.see('end')
                     self.log.configure(state='disabled')
                     self.status.set(value[:120])
                 elif kind == 'files':

@@ -7,7 +7,7 @@ import re
 import shutil
 from pathlib import Path
 
-from core import Cancelled, Extractor, load_names, slug, validate_saved_audio, resolve_event, event_language, descriptive_name
+from core import Cancelled, Extractor, load_names, slug, validate_saved_audio, resolve_event, event_language, descriptive_name, pet_family, general_folder, language_folder
 from name_decoder import audio_name
 
 
@@ -35,11 +35,22 @@ def finish_pending(output, marker, report):
     row = report['wavs'][pending['index']]
     if row['wav'] != pending['old']:
         raise ValueError('Manifiesto y renombrado pendiente no coinciden.')
-    if old == new or old.parent != new.parent or old.suffix != new.suffix:
+    pet_move = bool(pet_family(pending['events'])) and new.parent == old.parent / 'pet'
+    language_move = False
+    if report.get('folder') and pending.get('audio_folder') in ('es', 'en', 'kr', 'SFX'):
+        root = (output / report['folder']).resolve()
+        expected = root / pending['audio_folder']
+        if pet_family(pending['events']):
+            expected = expected / 'pet'
+        language_move = (root.parent == output and root.name != '.loa_audio'
+                         and old.is_relative_to(root) and new.parent == expected
+                         and expected.resolve() == expected)
+    if old == new or (old.parent != new.parent and not pet_move and not language_move) or old.suffix != new.suffix:
         raise ValueError('Renombrado pendiente no valido.')
     if old.exists():
         if new.exists() or digest(old) != pending['sha256']:
             raise ValueError('Conflicto en renombrado pendiente; no se sobrescribe.')
+        new.parent.mkdir(parents=True, exist_ok=True)
         old.rename(new)
     elif not new.is_file() or digest(new) != pending['sha256']:
         raise ValueError('No se puede recuperar el renombrado pendiente.')
@@ -61,7 +72,7 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
         raise ValueError('El destino no contiene metadatos .loa_audio validos.')
     if not events:
         raise ValueError('No hay nombres cargados. Selecciona CATALOGO.csv en Herramientas y nombres.')
-    summary = dict(renamed=0, planned=0, unknown=0, already_named=0)
+    summary = dict(renamed=0, planned=0, unknown=0, already_named=0, missing=0)
     reserved = set()
     for marker in sorted(metadata.glob('*.json')):
         if marker.is_symlink():
@@ -79,8 +90,27 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
             if cancel is not None and cancel.is_set():
                 raise Cancelled()
             old = audio_path(output, row['wav'])
+            if not old.exists():
+                summary['missing'] += 1
+                emit(f'Archivo ausente; se omite y se conserva su registro: {old}')
+                continue
             language, names = resolve_event(events, package, row['media_id'],
                                             Path(row.get('media_source', '')).parent, source.parent)
+            effective_names = row.get('events') or names
+            target_dir = old.parent
+            if report.get('folder'):
+                root = (output / report['folder']).resolve()
+                if root.parent != output or root.name == '.loa_audio' or not old.is_relative_to(root):
+                    raise ValueError('Carpeta de origen del manifiesto no valida.')
+                target_dir = root / language_folder(language, effective_names)
+                if pet_family(effective_names):
+                    target_dir = target_dir / 'pet'
+                if target_dir.resolve() != target_dir:
+                    raise ValueError('Carpeta de idioma enlazada no admitida.')
+            elif pet_family(effective_names) and target_dir.name != 'pet':
+                target_dir = target_dir / 'pet'
+            relocate = target_dir != old.parent
+            preserve_name = False
             unnamed = old.name.startswith('sin_evento__') and not row.get('events')
             if not unnamed:
                 prior_events = row.get('events', '')
@@ -89,33 +119,43 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
                 managed_title = bool(row.get('descriptive_title'))
                 if ((not title and not managed_title) or
                         (not managed_title and not old.name.startswith(technical + '__'))):
-                    summary['already_named'] += 1
-                    continue
+                    if not relocate:
+                        summary['already_named'] += 1
+                        continue
+                    preserve_name = True
                 names = prior_events
             if not names:
                 summary['unknown'] += 1
-                continue
+                if not relocate:
+                    continue
+                preserve_name = True
             validate_saved_audio(old, row)
             name = slug(re.sub(r'\{[^}]*\}', '', names.split(' | ')[0]))
             suffix = '__' + slug(event_language(language, names))[:16] + '__' + slug(row['media_id'])[:24]
-            room = min(160, 245 - len(str(old.parent)) - 1 - len(suffix) - len('_9999999.wav'))
+            if not target_dir.resolve().is_relative_to(output):
+                raise ValueError('Carpeta de categoria fuera del archivo de origen.')
+            room = min(160, 245 - len(str(target_dir)) - 1 - len(suffix) - len('_9999999.wav'))
             if room < 1:
                 raise ValueError('Destino demasiado largo para renombrar.')
             name, title = descriptive_name(names, events, room)
-            title_only = bool(title and getattr(events, 'title_only', False))
+            title_only = bool(pet_family(names) or (title and getattr(events, 'title_only', False)))
             if (not unnamed and row.get('descriptive_title') == title
-                    and bool(row.get('title_only')) == title_only):
+                    and bool(row.get('title_only')) == title_only and target_dir == old.parent):
                 summary['already_named'] += 1
                 continue
             stem = name if title_only else name + suffix
-            dest = old.with_name(stem + old.suffix)
-            if dest == old or (not unnamed and not title and not row.get('descriptive_title')):
+            if preserve_name:
+                stem = old.stem
+                title = row.get('descriptive_title', '')
+                title_only = bool(row.get('title_only'))
+            dest = target_dir / (stem + old.suffix)
+            if dest == old or (not relocate and not unnamed and not title and not row.get('descriptive_title')):
                 summary['already_named'] += 1
                 continue
             number = 1
             while dest.exists() or dest in reserved:
                 number += 1
-                dest = old.with_name(stem + f'_{number}' + old.suffix)
+                dest = target_dir / (stem + f'_{number}' + old.suffix)
             if len(str(dest)) > 245:
                 raise ValueError('Destino demasiado largo para renombrar.')
             reserved.add(dest)
@@ -133,11 +173,16 @@ def repair_output(output, events, apply=False, cancel=None, emit=lambda message:
                 report['pending_name'] = dict(index=index, old=row['wav'],
                                               new=str(dest.relative_to(output)),
                                               sha256=digest(old), events=names, descriptive_title=title,
-                                              title_only=title_only)
+                                              title_only=title_only, audio_folder=language_folder(language, names))
                 Extractor.save_report(marker, report)
                 finish_pending(output, marker, report)
+                try:
+                    general_folder(dest.parent)
+                except OSError as error:
+                    emit(f'No se pudo configurar la vista de carpeta: {error}')
                 summary['renamed'] += 1
-    emit(f'Nombres: {summary["renamed"]} actualizados; {summary["unknown"]} sin asociacion en el catalogo.')
+    emit(f'Nombres: {summary["renamed"]} actualizados; {summary["unknown"]} sin asociacion en el catalogo; '
+         f'{summary["missing"]} archivos ausentes omitidos.')
     return summary
 
 

@@ -33,7 +33,8 @@ def self_test(report_path, samples, output, output_format='wav'):
         for language in ('es', 'en', 'ko'):
             catalog = load_names(title_language=language)[1]
             report['title_languages'][language] = dict(count=len(catalog.titles),
-                example=catalog.titles.get('bgm_jukebox_m235_2d_play'))
+                example=catalog.titles.get('bgm_jukebox_m235_2d_play'),
+                eventis={e: catalog.titles.get(e) for e in ('eventis_mgp', 'eventis_mhp22', 'eventis_manoa')})
         report['tools_available'] = all(Path(p).is_file() for p in tools.values())
         report['samples'] = []
         for sample in samples:

@@ -12,6 +12,70 @@ from repair_names import digest, repair_output
 
 
 class RepairNamesTests(unittest.TestCase):
+    def test_language_migration_unknown_audio_preserves_bytes_and_recovers(self):
+        self.report['folder'] = 'SOUND_BGM_GLOBAL'
+        core.Extractor.save_report(self.marker, self.report)
+        unrelated = {('SFX', 'OTHER', '999'): 'other'}
+        before = digest(self.wav)
+        self.assertEqual(repair_output(self.output, unrelated)['planned'], 1)
+        with patch('repair_names.finish_pending', side_effect=RuntimeError('interruption')):
+            with self.assertRaises(RuntimeError):
+                repair_output(self.output, unrelated, apply=True)
+        self.assertEqual(repair_output(self.output, unrelated, apply=True)['renamed'], 1)
+        row = json.loads(self.marker.read_text())['wavs'][0]
+        new = self.output / row['wav']
+        self.assertEqual(new.parent, self.wav.parent / 'es')
+        self.assertEqual(new.name, self.wav.name)
+        self.assertEqual(digest(new), before)
+        self.assertEqual(repair_output(self.output, unrelated, apply=True)['renamed'], 0)
+
+    def test_pet_move_collision_and_recovery(self):
+        events = core.EventCatalog({('Spanish(Spain)', 'SOUND_BGM_GLOBAL', '123'):
+                                    'pet_waiter1_attack10_shotvox1'})
+        target = self.wav.parent / 'pet'
+        target.mkdir()
+        (target / 'camarero1.wav').write_bytes(b'unrelated')
+        before = digest(self.wav)
+        self.assertEqual(repair_output(self.output, events)['planned'], 1)
+        self.assertTrue(self.wav.exists())
+        with patch('repair_names.finish_pending', side_effect=RuntimeError('interrupted')):
+            with self.assertRaises(RuntimeError):
+                repair_output(self.output, events, apply=True)
+        pending = json.loads(self.marker.read_text())['pending_name']
+        self.wav.rename(self.output / pending['new'])
+        self.assertEqual(repair_output(self.output, events, apply=True)['renamed'], 1)
+        self.assertEqual(digest(target / 'camarero1_2.wav'), before)
+        self.assertEqual(repair_output(self.output, events, apply=True)['renamed'], 0)
+        self.assertEqual((target / 'camarero1.wav').read_bytes(), b'unrelated')
+
+    def test_pet_family_unknown_translation_and_non_pet(self):
+        self.assertEqual(core.descriptive_name('pet_waiter1_idle', core.EventCatalog({}, title_language='ko'), 80)[0], 'waiter1')
+        self.assertEqual(core.descriptive_name('pet_unknown2_idle', core.EventCatalog({}), 80)[0], 'unknown2')
+        self.assertEqual(core.pet_family('not_pet_waiter1_idle'), '')
+
+    def test_missing_file_is_reported_without_changing_manifest(self):
+        self.wav.unlink()
+        before = self.marker.read_bytes()
+        messages = []
+        for apply in (False, True):
+            result = repair_output(self.output, self.events, apply=apply, emit=messages.append)
+            self.assertEqual(result['missing'], 1)
+            self.assertEqual(result['renamed'], 0)
+            self.assertEqual(self.marker.read_bytes(), before)
+        self.assertTrue(any(str(self.wav) in message for message in messages))
+
+    def test_missing_row_does_not_block_existing_audio(self):
+        missing = dict(self.report['wavs'][0], wav='missing/deleted.mp3', media_id='999')
+        self.report['wavs'].insert(0, missing)
+        core.Extractor.save_report(self.marker, self.report)
+        before = digest(self.wav)
+        result = repair_output(self.output, self.events, apply=True)
+        self.assertEqual(result['missing'], 1)
+        self.assertEqual(result['renamed'], 1)
+        rows = json.loads(self.marker.read_text())['wavs']
+        self.assertEqual(rows[0], missing)
+        self.assertEqual(digest(self.output / rows[1]['wav']), before)
+
     def test_title_only_collision_repeat_and_restore_full_name(self):
         titles = {'known_song': 'Aldea de las Nia'}
         full = core.EventCatalog(self.events, titles)

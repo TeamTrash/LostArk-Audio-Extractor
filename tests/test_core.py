@@ -148,7 +148,7 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(command.call_count, 1)
         self.assertEqual(self.wem.read_bytes(), before)
         self.assertTrue((self.out / '123__123').is_dir())
-        self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in (self.out / '123__123').iterdir()))
+        self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in (self.out / '123__123' / 'SFX').iterdir()))
         self.assertFalse(list(self.out.rglob('work_*')))
         self.wem.write_bytes(before + b'changed')
         with self.assertRaises(ValueError):
@@ -324,7 +324,8 @@ class CoreTests(unittest.TestCase):
         timer.start()
         try:
             with self.assertRaises(Cancelled):
-                engine.command([sys.executable, '-c', 'import time; time.sleep(30)'],
+                # Windows venv launchers can leave a child holding the log after kill.
+                engine.command([getattr(sys, '_base_executable', sys.executable), '-c', 'import time; time.sleep(30)'],
                                self.root, self.root / 'cancel.log')
         finally:
             timer.cancel()
@@ -344,8 +345,8 @@ class CoreTests(unittest.TestCase):
             engine.extract(self.wem, self.source, self.out)
             engine.extract(other, self.source, self.out)
         self.assertEqual(len(list((self.out / '.loa_audio').glob('*.json'))), 2)
-        self.assertEqual(len(list((self.out / '123__123').glob('*.wav'))), 2)
-        self.assertEqual(len(list((self.out / '123__123').iterdir())), 2)
+        self.assertEqual(len(list((self.out / '123__123').rglob('*.wav'))), 2)
+        self.assertEqual({p.name for p in (self.out / '123__123').iterdir()}, {'SFX', 'kr'})
 
     def test_pck_flattens_internal_folders_and_cleans_intermediates(self):
         pck = self.source / 'NV1OQ9OCBH9U2521OP359JOVONUGX5H.pck'
@@ -364,10 +365,10 @@ class CoreTests(unittest.TestCase):
             result = engine.extract(pck, self.source, self.out)
         folder = self.out / 'SOUND_BGM_PAPUNIKA_NONSTREAM__NV1OQ9OCBH9U2521OP359JOVONUGX5H'
         self.assertEqual(result['wav_count'], 2)
-        self.assertEqual({p.name for p in folder.iterdir()},
-                         {'sin_evento__ko__42.wav', 'sin_evento__en__42.wav'})
+        self.assertEqual({p.relative_to(folder).as_posix() for p in folder.rglob('*.wav')},
+                         {'kr/sin_evento__ko__42.wav', 'en/sin_evento__en__42.wav'})
         self.assertEqual(len(list(folder.iterdir())), 2)
-        self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in folder.iterdir()))
+        self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in folder.rglob('*.wav')))
         self.assertFalse(list(self.out.rglob('*.wem')))
         self.assertFalse(list(self.out.rglob('*.bnk')))
         self.assertFalse(list(self.out.rglob('work_*')))
@@ -387,7 +388,7 @@ class CoreTests(unittest.TestCase):
         with patch.object(engine, 'command', side_effect=self.fake_command):
             report = engine.extract(self.wem, self.source, self.out)
         self.assertEqual(report['state'], 'complete')
-        self.assertEqual(len(list((self.out / '123__123').iterdir())), 1)
+        self.assertEqual(len(list((self.out / '123__123' / 'SFX').iterdir())), 1)
 
     def test_each_source_has_decoded_and_original_name_folder(self):
         engine = Extractor(self.tools)
@@ -399,7 +400,7 @@ class CoreTests(unittest.TestCase):
                     path.write_bytes(b'RIFFtest')
                     result = engine.extract(path, self.source, self.out)
                     self.assertEqual(result['folder'], expected)
-        numeric = list((self.out / '123__123').iterdir())
+        numeric = list((self.out / '123__123' / 'SFX').iterdir())
         self.assertEqual(len(numeric), 1)
         self.assertTrue(all(p.is_file() and p.suffix == '.wav' for p in numeric))
         self.assertEqual(len(list((self.out / 'voice7__voice7').iterdir())), 1)
@@ -422,7 +423,7 @@ class CoreTests(unittest.TestCase):
             engine.extract(second, second.parent, self.out)
         self.assertEqual(Path(one['wavs'][0]['wav']).name, 'sin_evento__SFX__123.wav')
         self.assertEqual(Path(two['wavs'][0]['wav']).name, 'sin_evento__SFX__123_2.wav')
-        self.assertEqual(len(list((self.out / '123__123').iterdir())), 2)
+        self.assertEqual(len(list((self.out / '123__123' / 'SFX').iterdir())), 2)
 
     def test_existing_v11_folder_is_reused_without_moving_audio(self):
         metadata = self.out / '.loa_audio'
@@ -477,12 +478,12 @@ class CoreTests(unittest.TestCase):
         with patch.object(engine, 'command', side_effect=fake):
             with self.assertRaises(RuntimeError):
                 engine.extract(pck, self.source, self.out)
-            self.assertEqual(len(list((self.out / 'SOUND_TEST__SOUND_TEST').iterdir())), 1)
+            self.assertEqual(len(list((self.out / 'SOUND_TEST__SOUND_TEST').rglob('*.wav'))), 1)
             self.assertFalse(list(self.out.rglob('work_*')))
             report = engine.extract(pck, self.source, self.out)
         self.assertEqual(conversions, ['1', '2', '2'])
         self.assertEqual(report['wav_count'], 2)
-        self.assertEqual(len(list((self.out / 'SOUND_TEST__SOUND_TEST').iterdir())), 2)
+        self.assertEqual(len(list((self.out / 'SOUND_TEST__SOUND_TEST').rglob('*.wav'))), 2)
 
 
 if __name__ == '__main__':

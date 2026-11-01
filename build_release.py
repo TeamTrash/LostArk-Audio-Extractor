@@ -13,7 +13,7 @@ SOURCE_FILES = (
     'assets/app.png', 'assets/app.ico',
     '.gitignore', 'app.py', 'core.py', 'name_decoder.py', 'version.py',
     'build_release.py', 'build_windows.py', 'exe_entry.py', 'WINDOWS_EXE.md',
-    'repair_names.py', 'Iniciar.cmd', 'README.md', 'LICENSE',
+    'repair_names.py', 'Iniciar.cmd', 'README.md', 'redme_github.md', 'EVENTOS_PENDIENTES.md', 'LICENSE',
     'THIRD_PARTY_NOTICES.md', 'DEPENDENCIES.json', 'CHANGELOG.md',
     'CONTRIBUTING.md', 'RELEASE.md', 'LOCAL_USE_ONLY.md', 'tools/README.md',
     'licenses/lostark-explorer-MIT.txt', 'licenses/Tcl-8.6.12-license.terms',
