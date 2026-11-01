@@ -47,9 +47,8 @@ Código bajo licencia **MIT**. Proyecto independiente, sin afiliación oficial c
 
 __________________________________________________________________________________________________
 
-# Lost Ark Audio Extractor — 1.4.7
-
-Extract music, voices, and sound effects from Lost Ark **PCK/WEM** files and convert them to **WAV, MP3, or both**. Runs locally on Windows without modifying the original files.
+# Lost Ark Audio Extractor
+and convert them to **WAV, MP3, or both**. Runs locally on Windows without modifying the original files.
 
 ## Quick start
 
